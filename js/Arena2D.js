@@ -1,78 +1,17 @@
-class Renderer {
+import Renderer from './Renderer.js';
+import ImageStore from './ImageStore.js';
+import {V3} from './Math.js';
+import {Entity, EntityTypes, entities, entityTypeToImage} from './Entity.js';
+import {nameVersionDisplay} from './Constants.js';
 
-	constructor() {
-		this.canvas = document.getElementById('canvas');
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
-		this.context = canvas.getContext('2d');
-	}
+const renderer = new Renderer();
+const imageStore = new ImageStore();
 
-}
+export default function start() {
+	console.log(nameVersionDisplay);
 
-class ImageStore {
+	window.addEventListener('resize', (event) => renderer.setSize());
 
-	constructor() {
-		this.images = [];
-		this.imageLoadedCount = 0;
-		this.imagesToLoad = 0;
-	}
-
-	loadImage(src) {
-		++this.imagesToLoad;
-		const image = new Image();
-		const reference = this;
-		image.onload = () => ++reference.imageLoadedCount;
-		image.src = src;
-		const index = this.images.length;
-		this.images.push(image);
-		return index;
-	}
-
-	isLoadingFinished() {
-		return this.imageLoadedCount == this.imagesToLoad;
-	}
-
-}
-
-class V3 {
-
-	constructor(x, y, z) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-	}
-
-}
-
-const EntityTypes = Object.freeze({
-	PLAYER: 0,
-	WALL: 1,
-	BALL: 2
-});
-
-class Entity {
-
-	constructor(type, p, center) {
-		this.type = type;
-		this.p = p;
-		this.center = center;
-	}
-
-}
-
-const entityTypeToImage = {};
-const entities = [];
-
-let renderer = null;
-let imageStore = null;
-
-init();
-
-function init() {
-	console.log('Arena2D 0.0.3');
-
-	renderer = new Renderer();
-	imageStore = new ImageStore();
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
 
@@ -95,16 +34,57 @@ function startLoop() {
 	}
 }
 
-function loop() {
+let msElapsedOld = 0;
+const msDeltas = [];
+const msDeltaMax = 30;
+let fps = 0;
+const fpsTarget = 60;
+
+function loop(msElapsed) {
 	// TODO(alex): test with request frame as the last instruction
 	window.requestAnimationFrame(loop);
 
+	const msDelta = msElapsed - msElapsedOld;
+	if (msDeltas.length >= msDeltaMax) {
+		const sum = msDeltas.reduce((a, b) => a + b);
+		fps = 1000 / (sum / msDeltaMax);
+		msDeltas.length = 0;
+	}
+	msDeltas.push(msDelta);
+	msElapsedOld = msElapsed;
+	const dt = (1000 / msDelta) / fpsTarget;
+
+	draw();
+}
+
+function draw() {
 	renderer.context.clearRect(0, 0, renderer.canvas.width, renderer.canvas.height);
 
 	for (const entity of entities) {
 		renderer.context.save();
 		renderer.context.translate(-entity.center.x, -entity.center.y);
-		renderer.context.drawImage(imageStore.images[entityTypeToImage[entity.type]], entity.p.x, entity.p.y);
+		const image = imageStore.images[entityTypeToImage[entity.type]];
+		renderer.context.drawImage(image, entity.p.x, entity.p.y);
 		renderer.context.restore();
 	}
+
+	debugDraw();
+}
+
+function debugDraw() {
+	renderer.context.lineWidth = '1';
+	renderer.context.strokeStyle = 'rgb(255,0,0)';
+	renderer.context.fillStyle = 'rgb(255,0,0)';
+	renderer.context.font = '30px courier';
+
+	renderer.context.strokeRect(0.5, 0.5, renderer.canvas.width - 1, renderer.canvas.height - 1);
+	renderer.context.fillText('Resolution: ' + renderer.canvas.width + ' x ' + renderer.canvas.height, 5, 30);
+	renderer.context.fillText('FPS: ' + fps.toString().substring(0, 2), 5, 60);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 90);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 120);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 150);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 180);
+
+	const nameVersionDisplayTextMetrics = renderer.context.measureText(nameVersionDisplay);
+	renderer.context.fillText(nameVersionDisplay, renderer.canvas.width - nameVersionDisplayTextMetrics.width - 5, renderer.canvas.height - 5);
 }
