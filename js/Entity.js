@@ -1,8 +1,12 @@
+import {V3} from './Math.js';
+
 export class Entity {
 
-	constructor(type, p, center) {
+	constructor(type, position, size, center) {
 		this.type = type;
-		this.p = p;
+		this.position = position;
+		this.velocity = new V3(0., 0., 0.);
+		this.size = size;
 		this.center = center;
 	}
 

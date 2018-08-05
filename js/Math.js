@@ -6,6 +6,12 @@ export class V3 {
 		this.z = z;
 	}
 
+	copyFrom(that) {
+		this.x = that.x;
+		this.y = that.y;
+		this.z = that.z;
+	}
+
 	opposite() {
 		const result = new V3(-this.x, -this.y, -this.z);
 		return result;
@@ -17,9 +23,8 @@ export class V3 {
 	}
 
 	addEquals(that) {
-		this.x += that.x;
-		this.y += that.y;
-		this.y += that.y;
+		const added = this.add(that);
+		this.copyFrom(added);
 		return this;
 	}
 
@@ -29,9 +34,8 @@ export class V3 {
 	}
 
 	subtractEquals(that) {
-		this.x -= that.x;
-		this.y -= that.y;
-		this.y -= that.y;
+		const subtracted = this.subtract(that);
+		this.copyFrom(subtracted);
 		return this;
 	}
 
@@ -41,9 +45,8 @@ export class V3 {
 	}
 
 	multiplyEquals(that) {
-		this.x *= that.x;
-		this.y *= that.y;
-		this.y *= that.y;
+		const multiplied = this.multiply(that);
+		this.copyFrom(multiplied);
 		return this;
 	}
 
@@ -53,9 +56,8 @@ export class V3 {
 	}
 
 	divideEquals(that) {
-		this.x /= that.x;
-		this.y /= that.y;
-		this.y /= that.y;
+		const divided = this.divide(that);
+		this.copyFrom(divided);
 		return this;
 	}
 
@@ -65,15 +67,35 @@ export class V3 {
 	}
 
 	scaleEquals(scalar) {
-		this.x *= scalar;
-		this.y *= scalar;
-		this.y *= scalar;
+		const scaled = this.scale(that);
+		this.copyFrom(scaled);
 		return this;
 	}
 
 	inner(that) {
 		const result = this.x * that.x + this.y * that.y + this.z * that.z;
 		return result;
+	}
+
+	lengthSq() {
+		const result = this.inner(this);
+		return result;
+	}
+
+	length() {
+		const result = Math.sqrt(this.lengthSq());
+		return result;
+	}
+
+	normalize() {
+		const result = this.divide(this.length());
+		return result;
+	}
+
+	normalizeEquals() {
+		const normalized = this.normalize();
+		this.copyFrom(normalized);
+		return this;
 	}
 
 }
