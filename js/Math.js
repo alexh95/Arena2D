@@ -1,6 +1,6 @@
 export class V3 {
 
-	constructor(x, y, z) {
+	constructor(x = 0, y = 0, z = 0) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -12,7 +12,7 @@ export class V3 {
 		this.z = that.z;
 	}
 
-	opposite() {
+	negate() {
 		const result = new V3(-this.x, -this.y, -this.z);
 		return result;
 	}

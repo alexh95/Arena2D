@@ -2,7 +2,7 @@ import Renderer from './Renderer.js';
 import ImageStore from './ImageStore.js';
 import {V3} from './Math.js';
 import {Entity, EntityTypes, entities, entityTypeToImage} from './Entity.js';
-import {nameVersionDisplay} from './Constants.js';
+import {Keys, nameVersionDisplay} from './Constants.js';
 
 const renderer = new Renderer();
 const imageStore = new ImageStore();
@@ -10,6 +10,7 @@ const imageStore = new ImageStore();
 const tileSizeMeters = 1.;
 const tileSizePixels = 64;
 const metersToPixels = tileSizePixels / tileSizeMeters;
+let scale = 1;
 
 const keys = new Array(256).fill(false);
 
@@ -29,11 +30,11 @@ export default function start() {
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
 
-	const wall1 = new Entity(EntityTypes.WALL, new V3(-8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters, 0.));
-	const wall2 = new Entity(EntityTypes.WALL, new V3(8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters, 0.));
-	const wall3 = new Entity(EntityTypes.WALL, new V3(-8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters, 0.));
-	const wall4 = new Entity(EntityTypes.WALL, new V3(8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters, 0.));
-	const ball = new Entity(EntityTypes.BALL, new V3(0., 0., 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters, 0.));
+	const wall1 = new Entity(EntityTypes.WALL, new V3(-8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
+	const wall2 = new Entity(EntityTypes.WALL, new V3(8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
+	const wall3 = new Entity(EntityTypes.WALL, new V3(-8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
+	const wall4 = new Entity(EntityTypes.WALL, new V3(8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
+	const ball = new Entity(EntityTypes.BALL, new V3(0., 0., 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
 	
 	entities.push(wall1);
 	entities.push(wall2);
@@ -82,16 +83,16 @@ function update(dt) {
 	const speed = 50.;
 	const direction = new V3(0., 0., 0.);
 
-	if (keys[65]) {
+	if (keys[Keys.A]) {
 		direction.x -= 1.0;
 	}
-	if (keys[68]) {
+	if (keys[Keys.D]) {
 		direction.x += 1.0;
 	}
-	if (keys[87]) {
+	if (keys[Keys.W]) {
 		direction.y -= 1.0;
 	}
-	if (keys[83]) {
+	if (keys[Keys.S]) {
 		direction.y += 1.0;
 	}
 
@@ -102,19 +103,23 @@ function update(dt) {
 }
 
 function draw() {
-	renderer.context.clearRect(0, 0, renderer.canvas.width, renderer.canvas.height);
+	renderer.clear();
 
-	for (const entity of entities) {
-		renderer.context.save();
-		renderer.context.translate(0.5 * renderer.canvas.width, 0.5 * renderer.canvas.height);
+	entities.forEach((entity) => {
+		renderer.save();
+		renderer.translate(renderer.size.scale(0.5));
 		const cameraPosition = renderer.cameraPosition.scale(metersToPixels);
-		renderer.context.translate(cameraPosition.x, cameraPosition.y);
-		const position = entity.position.subtract(entity.center).scale(metersToPixels);
-		renderer.context.translate(position.x, position.y);
+		renderer.translate(cameraPosition);
+		const position = entity.position.scale(metersToPixels);
+		renderer.translate(position);
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		renderer.context.drawImage(image, 0, 0);
-		renderer.context.restore();
-	}
+		const scalar = new V3(tileSizePixels / image.width, tileSizePixels / image.height);
+		renderer.scale(scalar);
+		renderer.scaleCenter(new V3(scale, scale), position);
+		const imageCenterDelta = entity.size.multiply(entity.center).scale(metersToPixels).negate();
+		renderer.drawImage(image, imageCenterDelta);
+		renderer.restore();
+	});
 
 	debugDraw();
 }
@@ -130,8 +135,12 @@ function debugDraw() {
 		0.5 * renderer.canvas.width + (renderer.canvas.width % 2 == 0 ? 0.5 : 0),
 		0.5 * renderer.canvas.height + (renderer.canvas.height % 2 == 0 ? 0.5 : 0),
 		0.);
-	renderer.context.strokeRect(center.x, center.y - 32, 0, 64);
-	renderer.context.strokeRect(center.x - 32, center.y, 64, 0);
+
+	const crossWidth = renderer.canvas.width % 2 == 0 ? 1 : 0;
+	const crossHeight = renderer.canvas.height % 2 == 0 ? 1 : 0;
+
+	renderer.context.strokeRect(center.x - crossWidth, center.y - 32, crossWidth, 64 - crossHeight);
+	renderer.context.strokeRect(center.x - 32, center.y - crossHeight, 64 - crossWidth, crossHeight);
 
 	renderer.context.fillText('Resolution: ' + renderer.canvas.width + ' x ' + renderer.canvas.height, 10, 30);
 	renderer.context.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
