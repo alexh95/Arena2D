@@ -88,8 +88,12 @@ export class V3 {
 	}
 
 	normalize() {
-		const result = this.divide(this.length());
-		return result;
+		const length = this.length();
+		if (length > 0) {
+			const result = this.scale(1 / length);
+			return result;
+		}
+		return this;
 	}
 
 	normalizeEquals() {
@@ -98,4 +102,16 @@ export class V3 {
 		return this;
 	}
 
+}
+
+export function displayText(number, decimals = 0, epsilon = 0.01, signSpace = false) {
+	const string = (Math.abs(number) > epsilon) ? number.toString() : '0';
+	const dotIndex = string.indexOf('.');
+	let result = (signSpace && (number >= 0)) ? ' ' : ((number > -epsilon) ? ' ' : '');
+	if (dotIndex > 0) {
+		result += string.substring(0, dotIndex + decimals + 1);
+	} else {
+		result += string + ((decimals > 0) ? ('.' + '0'.repeat(decimals)) : '');
+	}
+	return result;
 }
