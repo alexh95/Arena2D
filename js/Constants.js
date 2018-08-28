@@ -10,5 +10,5 @@ export const Keys = Object.freeze({
 });
 
 const name = 'Arena2D';
-const version = '0.0.6';
+const version = '0.0.7';
 export const nameVersionDisplay = name + ' ' + version;
