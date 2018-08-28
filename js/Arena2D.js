@@ -33,22 +33,23 @@ export default function start() {
 		}
 	});
 
+	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
 
-	const wallTL = new Entity(EntityTypes.WALL, new V3(-8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
-	const wallTR = new Entity(EntityTypes.WALL, new V3(8., 4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
-	const wallBL = new Entity(EntityTypes.WALL, new V3(8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
-	const wallBR = new Entity(EntityTypes.WALL, new V3(-8., -4.5, 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
-	const ball = new Entity(EntityTypes.BALL, new V3(0., 0., 0.), new V3(tileSizeMeters, tileSizeMeters, 0.), new V3(0.5, 0.5, 0.));
+	const wallTL = new Entity(EntityTypes.WALL, new V3(-8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
+	const wallTR = new Entity(EntityTypes.WALL, new V3(8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
+	const wallBL = new Entity(EntityTypes.WALL, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
+	const wallBR = new Entity(EntityTypes.WALL, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
+	const wallM = new Entity(EntityTypes.WALL, new V3(-4., 0.), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
+	player = new Entity(EntityTypes.PLAYER, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
 	
 	entities.push(wallTL);
 	entities.push(wallTR);
 	entities.push(wallBL);
 	entities.push(wallBR);
-	entities.push(ball);
-
-	player = ball;
+	entities.push(wallM);
+	entities.push(player);
 
 	startLoop();
 }
@@ -109,9 +110,27 @@ function update(dt) {
 
 function moveEntity(dt, entity, speed, direction) {
 	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(8.));
+	const newVelocity = entity.velocity.add(acceleration.scale(dt));
+
 	const deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
-	entity.velocity.addEquals(acceleration.scale(dt));
-	entity.position.addEquals(deltaPosition);	
+	const newPosition = entity.position.add(deltaPosition);
+
+	const deltaLength = deltaPosition.length();
+
+	let hit = false;
+	entities.forEach((e, index) => {
+		if (e != entity) {
+			const tr = e.position.add(e.size.scale(0.5));
+			const bl = e.position.subtract(e.size.scale(0.5));
+			const d = (newPosition.x - 0.5 * entity.size.x - tr.x) / deltaLength;
+			if (0 <= d && d <= 1.) {
+				console.log(d);
+			}
+		}
+	});
+
+	entity.velocity = newVelocity;
+	entity.position = newPosition;	
 }
 
 function draw() {
@@ -144,6 +163,7 @@ function debugDraw() {
 
 	renderer.context.strokeRect(0.5, 0.5, renderer.canvas.width - 1, renderer.canvas.height - 1);
 
+	// Center
 	const center = new V3(
 		0.5 * renderer.canvas.width + (renderer.canvas.width % 2 == 0 ? 0.5 : 0),
 		0.5 * renderer.canvas.height + (renderer.canvas.height % 2 == 0 ? 0.5 : 0),
@@ -157,6 +177,7 @@ function debugDraw() {
 	renderer.context.fillText('Y', center.x - 10, center.y - 40);
 	renderer.context.fillText('-Y', center.x - 27, center.y + 56);
 
+	// Top Left
 	renderer.context.fillText('Resolution: ' + renderer.canvas.width + ' x ' + renderer.canvas.height, 10, 30);
 	renderer.context.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
 	const keysPressed = keys.map((value, index) => value ? String.fromCharCode(index) + ' ' + index : 0).filter((value) => value);
@@ -165,6 +186,7 @@ function debugDraw() {
 	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 150);
 	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 180);
 
+	// Top Right
 	const playerPositionText = `Player Pos: (${displayText(player.position.x, 2, 0.01, true)},${displayText(player.position.y, 2, 0.01, true)})`;
 	const playerPositionTextMetrics = renderer.context.measureText(playerPositionText);
 	renderer.context.fillText(playerPositionText, renderer.canvas.width - playerPositionTextMetrics.width - 5, 30);
@@ -173,6 +195,7 @@ function debugDraw() {
 	const playerSpeedTextMetrics = renderer.context.measureText(playerSpeedText);
 	renderer.context.fillText(playerSpeedText, renderer.canvas.width - playerSpeedTextMetrics.width - 5, 60);
 
+	// Bottom Rignt
 	const nameVersionDisplayTextMetrics = renderer.context.measureText(nameVersionDisplay);
 	renderer.context.fillText(nameVersionDisplay, renderer.canvas.width - nameVersionDisplayTextMetrics.width - 5, renderer.canvas.height - 5);
 }
