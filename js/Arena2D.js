@@ -115,22 +115,47 @@ function moveEntity(dt, entity, speed, direction) {
 	const deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
 	const newPosition = entity.position.add(deltaPosition);
 
-	const deltaLength = deltaPosition.length();
-
 	let hit = false;
-	entities.forEach((e, index) => {
-		if (e != entity) {
-			const tr = e.position.add(e.size.scale(0.5));
-			const bl = e.position.subtract(e.size.scale(0.5));
-			const d = (newPosition.x - 0.5 * entity.size.x - tr.x) / deltaLength;
-			if (0 <= d && d <= 1.) {
-				console.log(d);
+	let tMin = 1.;
+	for (let collisionIndex = 0; collisionIndex < 4; ++collisionIndex) {
+		entities.forEach((e, index) => {
+			if (e != entity) {
+				const wx = e.position.x + 0.5 * e.size.x + 0.5 * entity.size.x
+				const wy1 = e.position.y - 0.5 * e.size.y - 0.5 * entity.size.y;
+				const wy2 = e.position.y + 0.5 * e.size.y + 0.5 * entity.size.y;
+				const t = collideWall(wx, wy1, wy2, entity.position, deltaPosition);
+				if (t < tMin) {
+					hit = true;
+					tMin = t;
+				}
 			}
-		}
-	});
+		});
 
-	entity.velocity = newVelocity;
-	entity.position = newPosition;	
+		if (hit) {
+			entity.velocity = entity.velocity.multiply(new V3(0, 1 - tMin));
+			entity.position = entity.position.add(deltaPosition.scale(tMin - 0.01));
+		}
+	}
+
+	if (!hit) {
+		entity.velocity = newVelocity;
+		entity.position = newPosition;
+	}
+}
+
+function collideWall(wx, wy1, wy2, position, deltaPosition) {
+	let result = 1.;
+
+	const newPosition = position.add(deltaPosition);
+	const yColision = (wy1 <= position.y) && (position.y <= wy2) && (wy1 <= newPosition.y) && (newPosition.y <= wy2);
+	if (yColision) {
+		const t = (position.x - wx) / deltaPosition.length();
+		if (0. <= t && t < 1.) {
+			result = t;
+		}
+	}
+
+	return result;
 }
 
 function draw() {
