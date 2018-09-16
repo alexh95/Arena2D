@@ -195,7 +195,7 @@ function collideWall(x, y, dx, dy, wx, wy1, wy2, tMin) {
 	if (dx !== 0.) {
 		const nt = (wx - x) / dx;
 		const ny = y + tMin * dy;
-		if ((nt >= 0.) && (nt < tMin) && (ny >= wy1) && (y <= wy2)) {
+		if ((nt >= 0.) && (nt < tMin) && (y >= wy1) && (y <= wy2) && (ny >= wy1) && (ny <= wy2)) {
 			hit = true;
 			t = Math.max(0., nt - epsilon);
 		}
