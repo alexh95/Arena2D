@@ -74,7 +74,7 @@ function loop(msElapsed) {
 	const msDelta = msElapsed - msElapsedOld;
 	if (msDeltas.length >= msDeltaMax) {
 		const sum = msDeltas.reduce((a, b) => a + b);
-		fps = 1000 / (sum / msDeltaMax);
+		fps = 1000. / (sum / msDeltaMax);
 		msDeltas.length = 0;
 	}
 	msDeltas.push(msDelta);
@@ -91,19 +91,19 @@ function update(dt) {
 	const direction = new V3();
 
 	if (keys[Keys.A]) {
-		direction.x -= 1.0;
+		direction.x -= 1.;
 	}
 	if (keys[Keys.D]) {
-		direction.x += 1.0;
+		direction.x += 1.;
 	}
 	if (keys[Keys.W]) {
-		direction.y += 1.0;
+		direction.y += 1.;
 	}
 	if (keys[Keys.S]) {
-		direction.y -= 1.0;
+		direction.y -= 1.;
 	}
 
-	direction.normalizeEquals();	
+	direction.normalizeEquals();
 
 	moveEntity(dt, player, speed, direction);
 }
@@ -123,7 +123,6 @@ function moveEntity(dt, entity, speed, direction) {
 		let wallNormal = new V3(0., 0.);
 
 		const newPosition = entity.position.add(deltaPosition);
-		if (msElapsedOld < 2000) console.log('start');
 		entities.forEach((e, index) => {
 			if (e != entity) {
 				const wallCornerMin = e.size.add(entity.size).scale(-0.5);
@@ -132,33 +131,29 @@ function moveEntity(dt, entity, speed, direction) {
 				// Left wall
 				const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMin.x, wallCornerMin.y, wallCornerMax.y, tMin);
 				if (collisionLeft.hit) {
-					if (msElapsedOld < 2000) console.log('hit left');
 					hit = true;
-					tMin = Math.min(tMin, collisionLeft.t);
+					tMin = collisionLeft.t;
 					wallNormal = new V3(-1., 0.);
 				}
 				// Right wall
 				const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMax.x, wallCornerMin.y, wallCornerMax.y, tMin);
 				if (collisionRight.hit) {
-					if (msElapsedOld < 2000) console.log('hit right');
 					hit = true;
-					tMin = Math.min(tMin, collisionRight.t);
+					tMin = collisionRight.t;
 					wallNormal = new V3(1., 0.);
 				}
 				// Bottom wall
 				const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMin.y, wallCornerMin.x, wallCornerMax.x, tMin);
 				if (collisionBottom.hit) {
-					if (msElapsedOld < 2000) console.log('hit bottom');
 					hit = true;
-					tMin = Math.min(tMin, collisionBottom.t);
+					tMin = collisionBottom.t;
 					wallNormal = new V3(0., -1.);
 				}
 				// Top wall
 				const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMax.y, wallCornerMin.x, wallCornerMax.x, tMin);
 				if (collisionTop.hit) {
-					if (msElapsedOld < 2000) console.log('hit top');
 					hit = true;
-					tMin = Math.min(tMin, collisionTop.t);
+					tMin = collisionTop.t;
 					wallNormal = new V3(0., 1.);
 				}
 			}
@@ -187,7 +182,7 @@ function moveEntity(dt, entity, speed, direction) {
 		});
 
 	if (insideOld !== insideNew) {
-		console.log('nope');
+		console.log('nope', entity.position.x, entity.position.y);
 	}
 	insideOld = insideNew;
 }
@@ -197,16 +192,17 @@ function collideWall(x, y, dx, dy, wx, wy1, wy2, tMin) {
 	let t = 1.;
 	const epsilon = 0.0001;
 
-	if (dx != 0.) {
+	if (dx !== 0.) {
 		const nt = (wx - x) / dx;
-		const ny = y + t * dy;
-		if ((nt >= 0.) && (nt < 1)/*&& (nt < tMin)*/ && (ny >= wy1) && (ny <= wy2)) {
+		const ny = y + tMin * dy;
+		if ((nt >= 0.) && (nt < tMin) && (ny >= wy1) && (y <= wy2)) {
 			hit = true;
 			t = Math.max(0., nt - epsilon);
 		}
 	}
 
-	return {hit, t};
+	const log = `${hit}, ${t}, ${dx} != 0 <= ${(wx - x) / dx} <= ${tMin} && ${wy1} <= ${y + tMin * dy} <= ${wy2}`;
+	return {hit, t, log};
 }
 
 function draw() {
@@ -240,10 +236,8 @@ function debugDraw() {
 	renderer.context.strokeRect(0.5, 0.5, renderer.canvas.width - 1, renderer.canvas.height - 1);
 
 	// Center
-	const center = new V3(
-		0.5 * renderer.canvas.width + (renderer.canvas.width % 2 == 0 ? 0.5 : 0),
-		0.5 * renderer.canvas.height + (renderer.canvas.height % 2 == 0 ? 0.5 : 0),
-		0.);
+	const center = new V3(0.5 * renderer.canvas.width + (renderer.canvas.width % 2 == 0 ? 0.5 : 0),
+						  0.5 * renderer.canvas.height + (renderer.canvas.height % 2 == 0 ? 0.5 : 0));
 	const crossWidth = renderer.canvas.width % 2 == 0 ? 1 : 0;
 	const crossHeight = renderer.canvas.height % 2 == 0 ? 1 : 0;
 	renderer.context.strokeRect(center.x - crossWidth, center.y - 32, crossWidth, 64 - crossHeight);
