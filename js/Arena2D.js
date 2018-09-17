@@ -36,19 +36,25 @@ export default function start() {
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
+	entityTypeToImage[EntityTypes.ELLIPSE_2_1] = imageStore.loadImage('res/ellipse_2_1.png');
+	entityTypeToImage[EntityTypes.ELLIPSE_4_1] = imageStore.loadImage('res/ellipse_4_1.png');
+	entityTypeToImage[EntityTypes.ELLIPSE_1_2] = imageStore.loadImage('res/ellipse_1_2.png');
+	entityTypeToImage[EntityTypes.ELLIPSE_1_4] = imageStore.loadImage('res/ellipse_1_4.png');
 
-	const wallTL = new Entity(EntityTypes.WALL, new V3(-8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	const wallTR = new Entity(EntityTypes.WALL, new V3(8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	const wallBL = new Entity(EntityTypes.WALL, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	const wallBR = new Entity(EntityTypes.WALL, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	const wallM = new Entity(EntityTypes.WALL, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	player = new Entity(EntityTypes.PLAYER, new V3(-2., -2.), new V3(tileSizeMeters, tileSizeMeters), new V3(0.5, 0.5));
-	
+	const wallTL = new Entity(EntityTypes.WALL, new V3(-8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
+	const wallTR = new Entity(EntityTypes.WALL, new V3(8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
+	const wallBL = new Entity(EntityTypes.WALL, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
+	const wallBR = new Entity(EntityTypes.WALL, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
+	const wallM = new Entity(EntityTypes.WALL, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
+	const ballM = new Entity(EntityTypes.ELLIPSE_2_1, new V3(0., 0.), new V3(0., 0.), new V3(tileSizeMeters, 0.5 * tileSizeMeters), new V3(0.5, 0.5));
+	player = new Entity(EntityTypes.ELLIPSE_2_1, new V3(-5., -5.), new V3(0., 0.), new V3(tileSizeMeters, 0.5 * tileSizeMeters), new V3(0.5, 0.5));
+
 	// entities.push(wallTL);
 	// entities.push(wallTR);
 	// entities.push(wallBL);
 	// entities.push(wallBR);
-	entities.push(wallM);
+	// entities.push(wallM);
+	entities.push(ballM);
 	entities.push(player);
 
 	startLoop();
@@ -102,6 +108,8 @@ function update(dt) {
 	if (keys[Keys.S]) {
 		direction.y -= 1.;
 	}
+	// direction.x = 1.;
+	// direction.y = 1.;
 
 	direction.normalizeEquals();
 
@@ -125,36 +133,59 @@ function moveEntity(dt, entity, speed, direction) {
 		const newPosition = entity.position.add(deltaPosition);
 		entities.forEach((e, index) => {
 			if (e != entity) {
-				const wallCornerMin = e.size.add(entity.size).scale(-0.5);
-				const wallCornerMax = e.size.add(entity.size).scale(0.5);
-				const relativePosition = entity.position.subtract(e.position);
-				// Left wall
-				const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMin.x, wallCornerMin.y, wallCornerMax.y, tMin);
-				if (collisionLeft.hit) {
-					hit = true;
-					tMin = collisionLeft.t;
-					wallNormal = new V3(-1., 0.);
-				}
-				// Right wall
-				const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMax.x, wallCornerMin.y, wallCornerMax.y, tMin);
-				if (collisionRight.hit) {
-					hit = true;
-					tMin = collisionRight.t;
-					wallNormal = new V3(1., 0.);
-				}
-				// Bottom wall
-				const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMin.y, wallCornerMin.x, wallCornerMax.x, tMin);
-				if (collisionBottom.hit) {
-					hit = true;
-					tMin = collisionBottom.t;
-					wallNormal = new V3(0., -1.);
-				}
-				// Top wall
-				const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMax.y, wallCornerMin.x, wallCornerMax.x, tMin);
-				if (collisionTop.hit) {
-					hit = true;
-					tMin = collisionTop.t;
-					wallNormal = new V3(0., 1.);
+				if (e.type === EntityTypes.WALL) {
+					const wallCornerMin = entity.size.add(e.size).scale(-0.5);
+					const wallCornerMax = entity.size.add(e.size).scale(0.5);
+					const relativePosition = entity.position.subtract(e.position);
+					// Left wall
+					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMin.x, wallCornerMin.y, wallCornerMax.y, tMin);
+					if (collisionLeft.hit) {
+						hit = true;
+						tMin = collisionLeft.t;
+						wallNormal = new V3(-1., 0.);
+					}
+					// Right wall
+					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMax.x, wallCornerMin.y, wallCornerMax.y, tMin);
+					if (collisionRight.hit) {
+						hit = true;
+						tMin = collisionRight.t;
+						wallNormal = new V3(1., 0.);
+					}
+					// Bottom wall
+					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMin.y, wallCornerMin.x, wallCornerMax.x, tMin);
+					if (collisionBottom.hit) {
+						hit = true;
+						tMin = collisionBottom.t;
+						wallNormal = new V3(0., -1.);
+					}
+					// Top wall
+					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMax.y, wallCornerMin.x, wallCornerMax.x, tMin);
+					if (collisionTop.hit) {
+						hit = true;
+						tMin = collisionTop.t;
+						wallNormal = new V3(0., 1.);
+					}
+				} else if (e.type === EntityTypes.BALL || e.type === EntityTypes.ELLIPSE_2_1) {
+					const ballRadius = entity.radius.add(e.radius);
+					const relativePosition = entity.position.subtract(e.position);
+					const denominator = ballRadius.y * ballRadius.y * deltaPosition.x * deltaPosition.x + ballRadius.x * ballRadius.x * deltaPosition.y * deltaPosition.y;
+					const innerDifference = relativePosition.x * deltaPosition.y - relativePosition.y * deltaPosition.x;
+					const squaredInnerDifference = innerDifference * innerDifference;
+					const deltaSquared = denominator - squaredInnerDifference;
+			      	if (deltaSquared >= 0. && Math.abs(denominator) > 0) {
+			      		const delta = ballRadius.x * ballRadius.y * Math.sqrt(deltaSquared);
+			      		const numeratorPart = -(ballRadius.y * ballRadius.y * relativePosition.x * deltaPosition.x + ballRadius.x * ballRadius.x * relativePosition.y * deltaPosition.y);
+			      		const t1 = (numeratorPart + delta) / denominator;
+			      		const t2 = (numeratorPart - delta) / denominator;
+			      		const tMin12 = Math.min((t1 < 0.) ? tMin : t1, (t2 < 0.) ? tMin : t2);
+			      		if (tMin12 < 1. && tMin12 < tMin) {
+				      		hit = true;
+				      		tMin = Math.min(0., tMin12 - 0.0001);
+							const newPosition = relativePosition.add(deltaPosition.scale(tMin));
+				      		wallNormal = newPosition.normalize();	
+				      		// console.log(tMin, relativePosition, deltaPosition, newPosition, wallNormal);
+			      		}
+			      	}
 				}
 			}
 		});
@@ -182,7 +213,7 @@ function moveEntity(dt, entity, speed, direction) {
 		});
 
 	if (insideOld !== insideNew) {
-		console.log('nope', entity.position.x, entity.position.y);
+		// console.log('nope', entity.position.x, entity.position.y);
 	}
 	insideOld = insideNew;
 }
@@ -205,10 +236,14 @@ function collideWall(x, y, dx, dy, wx, wy1, wy2, tMin) {
 	return {hit, t, log};
 }
 
+function collideBall() {
+
+}
+
 function draw() {
 	renderer.clear();
 
-	entities.forEach((entity) => {
+	entities.forEach((entity) => { 
 		renderer.save();
 		renderer.translate(renderer.size.scale(0.5));
 		const cameraPosition = renderer.cameraPosition.scale(metersToPixels);
@@ -216,10 +251,12 @@ function draw() {
 		const position = entity.position.multiply(new V3(1., -1.)).scale(metersToPixels);
 		renderer.translate(position);
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const scalar = new V3(tileSizePixels / image.width, tileSizePixels / image.height);
+		const fullSize = entity.size.add(entity.radius.scale(2));
+		const scalar = new V3(image.width / tileSizePixels, image.height / tileSizePixels).divide(fullSize);
+		console.log(scalar);
 		renderer.scale(scalar);
 		renderer.scaleCenter(new V3(scale, scale), position);
-		const imageCenterDelta = entity.size.multiply(entity.center).scale(metersToPixels).negate();
+		const imageCenterDelta = fullSize.multiply(entity.center).scale(metersToPixels).negate();
 		renderer.drawImage(image, imageCenterDelta);
 		renderer.restore();
 	});
@@ -261,7 +298,7 @@ function debugDraw() {
 	const playerPositionTextMetrics = renderer.context.measureText(playerPositionText);
 	renderer.context.fillText(playerPositionText, renderer.canvas.width - playerPositionTextMetrics.width - 5, 30);
 
-	const playerSpeedText = `Player Speed (${displayText(player.velocity.x, 2, 0.01, true)},${displayText(player.velocity.y, 2, 0.01, true)})`;
+	const playerSpeedText = `Player Speed: ${displayText(player.velocity.length(), 2, 0.01, true)}, (${displayText(player.velocity.x, 2, 0.01, true)},${displayText(player.velocity.y, 2, 0.01, true)})`;
 	const playerSpeedTextMetrics = renderer.context.measureText(playerSpeedText);
 	renderer.context.fillText(playerSpeedText, renderer.canvas.width - playerSpeedTextMetrics.width - 5, 60);
 
