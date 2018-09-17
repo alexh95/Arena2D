@@ -109,7 +109,7 @@ export function displayText(number, decimals = 0, epsilon = 0.01, signSpace = fa
 	const dotIndex = string.indexOf('.');
 	let result = (signSpace && (number >= 0)) ? ' ' : ((number > -epsilon) ? ' ' : '');
 	if (dotIndex > 0) {
-		result += string.substring(0, dotIndex + decimals + 1);
+		result += string.substring(0, dotIndex + ((decimals > 0) ? decimals + 1 : 0));
 	} else {
 		result += string + ((decimals > 0) ? ('.' + '0'.repeat(decimals)) : '');
 	}
