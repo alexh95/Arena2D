@@ -121,7 +121,7 @@ let insideOld = false;
 function moveEntity(dt, entity, speed, direction) {
 	let insideNew = false;
 
-	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(8.));
+	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(2.));
 	let deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
 	entity.velocity = entity.velocity.add(acceleration.scale(dt));
 
@@ -130,7 +130,6 @@ function moveEntity(dt, entity, speed, direction) {
 		let tMin = 1.;
 		let wallNormal = new V3(0., 0.);
 
-		const newPosition = entity.position.add(deltaPosition);
 		entities.forEach((e, index) => {
 			if (e != entity) {
 				if (e.type === EntityTypes.WALL) {
@@ -179,11 +178,11 @@ function moveEntity(dt, entity, speed, direction) {
 			      		const t2 = (numeratorPart - delta) / denominator;
 			      		const tMin12 = Math.min((t1 < 0.) ? tMin : t1, (t2 < 0.) ? tMin : t2);
 			      		if (tMin12 < 1. && tMin12 < tMin) {
+				      		console.log(t1, t2, tMin12);
 				      		hit = true;
-				      		tMin = Math.min(0., tMin12 - 0.0001);
+				      		tMin = Math.max(0., tMin12 - 0.0001);
 							const newPosition = relativePosition.add(deltaPosition.scale(tMin));
 				      		wallNormal = newPosition.normalize();	
-				      		// console.log(tMin, relativePosition, deltaPosition, newPosition, wallNormal);
 			      		}
 			      	}
 				}
@@ -193,9 +192,11 @@ function moveEntity(dt, entity, speed, direction) {
 		entity.position = entity.position.add(deltaPosition.scale(tMin));
 
 		if (hit) {
+			console.log('normal', wallNormal, tMin);
+			console.log('before', entity.velocity, deltaPosition);
 			entity.velocity = entity.velocity.subtract(wallNormal.scale(entity.velocity.inner(wallNormal)));
-			deltaPosition = newPosition.subtract(entity.position)
 			deltaPosition = deltaPosition.subtract(wallNormal.scale(deltaPosition.inner(wallNormal)));
+			console.log('after', entity.velocity, deltaPosition);
 		} else {
 			break;
 		}
@@ -253,7 +254,6 @@ function draw() {
 		const image = imageStore.images[entityTypeToImage[entity.type]];
 		const fullSize = entity.size.add(entity.radius.scale(2));
 		const scalar = new V3(image.width / tileSizePixels, image.height / tileSizePixels).divide(fullSize);
-		console.log(scalar);
 		renderer.scale(scalar);
 		renderer.scaleCenter(new V3(scale, scale), position);
 		const imageCenterDelta = fullSize.multiply(entity.center).scale(metersToPixels).negate();
