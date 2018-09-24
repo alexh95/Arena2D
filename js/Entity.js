@@ -24,14 +24,5 @@ export const entities = [];
 
 export const EntityTypes = Object.freeze({
 	PLAYER: 0,
-	SQUARE_SMALL: 1,
-	SQUARE_MEDIUM: 2,
-	SQUARE_LARGE: 3,
-	CIRCLE_SMALL: 4,
-	CIRCLE_MEDIUM: 5,
-	CIRCLE_LARGE: 6,
-	ROUNDED_SQUARE_SMALL: 7,
-	ROUNDED_SQUARE_MEDIUM: 8,
-	ROUNDED_SQUARE_LARGE: 9,
-	WALL: 10
+	WALL: 1
 });

@@ -35,15 +35,6 @@ export default function start() {
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
-	entityTypeToImage[EntityTypes.SQUARE_SMALL] = imageStore.loadImage('res/square_small.png');
-	entityTypeToImage[EntityTypes.SQUARE_MEDIUM] = imageStore.loadImage('res/square_medium.png');
-	entityTypeToImage[EntityTypes.SQUARE_LARGE] = imageStore.loadImage('res/square_large.png');
-	entityTypeToImage[EntityTypes.CIRCLE_SMALL] = imageStore.loadImage('res/circle_small.png');
-	entityTypeToImage[EntityTypes.CIRCLE_MEDIUM] = imageStore.loadImage('res/circle_medium.png');
-	entityTypeToImage[EntityTypes.CIRCLE_LARGE] = imageStore.loadImage('res/circle_large.png');
-	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_SMALL] = imageStore.loadImage('res/rounded_square_small.png');
-	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_MEDIUM] = imageStore.loadImage('res/rounded_square_medium.png');
-	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_LARGE] = imageStore.loadImage('res/rounded_square_large.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 
 	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), 
@@ -54,53 +45,10 @@ export default function start() {
 		new V3(16, 16).scale(pixelsToMeters), new V3(8, 8).scale(pixelsToMeters),
 		new V3(16, 16).scale(pixelsToMeters), 0., new V3(8, 8).scale(pixelsToMeters));
 
-	// const playerSquareSmall = new Entity(EntityTypes.SQUARE_SMALL, new V3(2.5, 3.), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	// const playerCircleSmall = new Entity(EntityTypes.CIRCLE_SMALL, new V3(3., 0.), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// const playerRoundedSquareSmall = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(3., 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
-
-	// const squareSmall1 = new Entity(EntityTypes.SQUARE_SMALL, new V3(-0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	// const squareSmall2 = new Entity(EntityTypes.SQUARE_SMALL, new V3(0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	// const squareMedium1 = new Entity(EntityTypes.SQUARE_MEDIUM, new V3(8., -4.5), new V3(2 * tileSizeMeters, 2 * tileSizeMeters), 0., new V3(0.5, 0.5));
-	// const squareMedium2 = new Entity(EntityTypes.SQUARE_MEDIUM, new V3(-8., -4.5), new V3(2 * tileSizeMeters, 2 * tileSizeMeters), 0., new V3(0.5, 0.5));
-	// const squareLarge = new Entity(EntityTypes.SQUARE_LARGE, new V3(0., 0.), new V3(4 * tileSizeMeters, 4 * tileSizeMeters), 0., new V3(0.5, 0.5));
-
-	// const circleSmall1 = new Entity(EntityTypes.CIRCLE_SMALL, new V3(-0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// const circleSmall2 = new Entity(EntityTypes.CIRCLE_SMALL, new V3(0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// const circleMedium1 = new Entity(EntityTypes.CIRCLE_MEDIUM, new V3(-8., 4.5), new V3(0., 0.), tileSizeMeters, new V3(0.5, 0.5));
-	// const circleMedium2 = new Entity(EntityTypes.CIRCLE_MEDIUM, new V3(8. * tileSizeMeters, 4.5), new V3(0., 0.), tileSizeMeters, new V3(0.5, 0.5));
-	// const circleLarge = new Entity(EntityTypes.CIRCLE_LARGE, new V3(0., 0.), new V3(0., 0.), 2. * tileSizeMeters, new V3(0.5, 0.5));
-
-	// const roundedSquareSmall1 = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(-8., -tileSizeMeters), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
-	// const roundedSquareSmall2 = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(-8., tileSizeMeters), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
-	// const roundedSquareMedium1 = new Entity(EntityTypes.ROUNDED_SQUARE_MEDIUM, new V3(8., -1.5 * tileSizeMeters), new V3(tileSizeMeters, tileSizeMeters), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// const roundedSquareMedium2 = new Entity(EntityTypes.ROUNDED_SQUARE_MEDIUM, new V3(8., 1.5 * tileSizeMeters), new V3(tileSizeMeters, tileSizeMeters), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// const roundedSquareLarge = new Entity(EntityTypes.ROUNDED_SQUARE_LARGE, new V3(0., 0.), new V3(2. * tileSizeMeters, 2. * tileSizeMeters), tileSizeMeters, new V3(0.5, 0.5));
-
-	// player = playerSquareSmall;
-	// player = playerCircleSmall;
-	// player = playerRoundedRectangleSmall;
 	player = playerCharacter;
 	
 	entities.push(wall);
 	entities.push(player);
-
-	// entities.push(squareSmall1);
-	// entities.push(squareSmall2);
-	// entities.push(squareMedium1);
-	// entities.push(squareMedium2);
-	// entities.push(squareLarge);
-
-	// entities.push(circleSmall1);
-	// entities.push(circleSmall2);
-	// entities.push(circleMedium1);
-	// entities.push(circleMedium2);
-	// entities.push(circleLarge);
-
-	// entities.push(roundedSquareSmall1);
-	// entities.push(roundedSquareSmall2);
-	// entities.push(roundedSquareMedium1);
-	// entities.push(roundedSquareMedium2);
-	// entities.push(roundedSquareLarge);
 
 	startLoop();
 }
