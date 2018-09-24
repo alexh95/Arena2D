@@ -77,13 +77,13 @@ export class V3 {
 		return result;
 	}
 
-	lengthSq() {
+	lengthSquare() {
 		const result = this.inner(this);
 		return result;
 	}
 
 	length() {
-		const result = Math.sqrt(this.lengthSq());
+		const result = Math.sqrt(this.lengthSquare());
 		return result;
 	}
 

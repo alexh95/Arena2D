@@ -34,27 +34,32 @@ export default function start() {
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
-	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
-	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
-	entityTypeToImage[EntityTypes.ELLIPSE_2_1] = imageStore.loadImage('res/ellipse_2_1.png');
-	entityTypeToImage[EntityTypes.ELLIPSE_4_1] = imageStore.loadImage('res/ellipse_4_1.png');
-	entityTypeToImage[EntityTypes.ELLIPSE_1_2] = imageStore.loadImage('res/ellipse_1_2.png');
-	entityTypeToImage[EntityTypes.ELLIPSE_1_4] = imageStore.loadImage('res/ellipse_1_4.png');
+	entityTypeToImage[EntityTypes.SMALL_SQUARE] = imageStore.loadImage('res/small_square.png');
+	entityTypeToImage[EntityTypes.SMALL_CIRCLE] = imageStore.loadImage('res/small_circle.png');
+	entityTypeToImage[EntityTypes.SMALL_ROUNDED_SQUARE] = imageStore.loadImage('res/small_rounded_square.png');
+	entityTypeToImage[EntityTypes.MEDIUM_ROUNDED_SQUARE] = imageStore.loadImage('res/medium_rounded_square.png');
+	entityTypeToImage[EntityTypes.LARGE_ROUNDED_SQUARE] = imageStore.loadImage('res/large_rounded_square.png');
 
-	const wallTL = new Entity(EntityTypes.WALL, new V3(-8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
-	const wallTR = new Entity(EntityTypes.WALL, new V3(8., 4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
-	const wallBL = new Entity(EntityTypes.WALL, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
-	const wallBR = new Entity(EntityTypes.WALL, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
-	const wallM = new Entity(EntityTypes.WALL, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), new V3(0., 0.), new V3(0.5, 0.5));
-	const ballM = new Entity(EntityTypes.ELLIPSE_2_1, new V3(0., 0.), new V3(0., 0.), new V3(tileSizeMeters, 0.5 * tileSizeMeters), new V3(0.5, 0.5));
-	player = new Entity(EntityTypes.ELLIPSE_2_1, new V3(-5., -5.), new V3(0., 0.), new V3(tileSizeMeters, 0.5 * tileSizeMeters), new V3(0.5, 0.5));
+	const wallTL = new Entity(EntityTypes.SMALL_SQUARE, new V3(-0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const wallTR = new Entity(EntityTypes.SMALL_SQUARE, new V3(0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const wallBL = new Entity(EntityTypes.SMALL_SQUARE, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const wallBR = new Entity(EntityTypes.SMALL_SQUARE, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const wallM = new Entity(EntityTypes.SMALL_SQUARE, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const ballM = new Entity(EntityTypes.LARGE_ROUNDED_SQUARE, new V3(0., 0.), new V3(2. * tileSizeMeters, 2. * tileSizeMeters), tileSizeMeters, new V3(0.5, 0.5));
+	const ballBL = new Entity(EntityTypes.SMALL_CIRCLE, new V3(-0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const ballBR = new Entity(EntityTypes.SMALL_CIRCLE, new V3(0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	player = new Entity(EntityTypes.PLAYER, new V3(2.5, 2.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	// player = new Entity(EntityTypes.SMALL_CIRCLE, new V3(2.5, 2.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	// player = new Entity(EntityTypes.SMALL_ROUNDED_SQUARE, new V3(3., 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
 
-	// entities.push(wallTL);
-	// entities.push(wallTR);
+	entities.push(wallTL);
+	entities.push(wallTR);
 	// entities.push(wallBL);
 	// entities.push(wallBR);
 	// entities.push(wallM);
 	entities.push(ballM);
+	entities.push(ballBL);
+	entities.push(ballBR);
 	entities.push(player);
 
 	startLoop();
@@ -121,7 +126,7 @@ let insideOld = false;
 function moveEntity(dt, entity, speed, direction) {
 	let insideNew = false;
 
-	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(2.));
+	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(8.));
 	let deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
 	entity.velocity = entity.velocity.add(acceleration.scale(dt));
 
@@ -132,113 +137,238 @@ function moveEntity(dt, entity, speed, direction) {
 
 		entities.forEach((e, index) => {
 			if (e != entity) {
-				if (e.type === EntityTypes.WALL) {
-					const wallCornerMin = entity.size.add(e.size).scale(-0.5);
-					const wallCornerMax = entity.size.add(e.size).scale(0.5);
-					const relativePosition = entity.position.subtract(e.position);
+				const relativePosition = entity.position.subtract(e.position);
+				const cornerMin = entity.size.add(e.size).scale(-0.5);
+				const cornerMax = entity.size.add(e.size).scale(0.5);
+				const radius = e.radius + entity.radius;
+				if (cornerMin.x) {
 					// Left wall
-					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMin.x, wallCornerMin.y, wallCornerMax.y, tMin);
-					if (collisionLeft.hit) {
+					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x - radius, cornerMin.y, cornerMax.y, tMin);
+					if (collisionLeft.hit && tMin > collisionLeft.t) {
 						hit = true;
 						tMin = collisionLeft.t;
 						wallNormal = new V3(-1., 0.);
+						console.log('hit left');
 					}
 					// Right wall
-					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, wallCornerMax.x, wallCornerMin.y, wallCornerMax.y, tMin);
-					if (collisionRight.hit) {
+					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x + radius, cornerMin.y, cornerMax.y, tMin);
+					if (collisionRight.hit && tMin > collisionRight.t) {
 						hit = true;
 						tMin = collisionRight.t;
 						wallNormal = new V3(1., 0.);
+						console.log('hit right');
 					}
 					// Bottom wall
-					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMin.y, wallCornerMin.x, wallCornerMax.x, tMin);
-					if (collisionBottom.hit) {
+					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y - radius, cornerMin.x, cornerMax.x, tMin);
+					if (collisionBottom.hit && tMin > collisionBottom.t) {
 						hit = true;
 						tMin = collisionBottom.t;
 						wallNormal = new V3(0., -1.);
+						console.log('hit bottom');
 					}
 					// Top wall
-					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, wallCornerMax.y, wallCornerMin.x, wallCornerMax.x, tMin);
-					if (collisionTop.hit) {
+					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y + radius, cornerMin.x, cornerMax.x, tMin);
+					if (collisionTop.hit && tMin > collisionTop.t) {
 						hit = true;
 						tMin = collisionTop.t;
 						wallNormal = new V3(0., 1.);
+						console.log('hit top');
 					}
-				} else if (e.type === EntityTypes.BALL || e.type === EntityTypes.ELLIPSE_2_1) {
-					const ballRadius = entity.radius.add(e.radius);
-					const relativePosition = entity.position.subtract(e.position);
-					const denominator = ballRadius.y * ballRadius.y * deltaPosition.x * deltaPosition.x + ballRadius.x * ballRadius.x * deltaPosition.y * deltaPosition.y;
-					const innerDifference = relativePosition.x * deltaPosition.y - relativePosition.y * deltaPosition.x;
-					const squaredInnerDifference = innerDifference * innerDifference;
-					const deltaSquared = denominator - squaredInnerDifference;
-			      	if (deltaSquared >= 0. && Math.abs(denominator) > 0) {
-			      		const delta = ballRadius.x * ballRadius.y * Math.sqrt(deltaSquared);
-			      		const numeratorPart = -(ballRadius.y * ballRadius.y * relativePosition.x * deltaPosition.x + ballRadius.x * ballRadius.x * relativePosition.y * deltaPosition.y);
-			      		const t1 = (numeratorPart + delta) / denominator;
-			      		const t2 = (numeratorPart - delta) / denominator;
-			      		const tMin12 = Math.min((t1 < 0.) ? tMin : t1, (t2 < 0.) ? tMin : t2);
-			      		if (tMin12 < 1. && tMin12 < tMin) {
-				      		console.log(t1, t2, tMin12);
-				      		hit = true;
-				      		tMin = Math.max(0., tMin12 - 0.0001);
-							const newPosition = relativePosition.add(deltaPosition.scale(tMin));
-				      		wallNormal = newPosition.normalize();	
-			      		}
-			      	}
+				}
+				if (radius > 0) {
+					if (cornerMin.x) {
+						// Top Left Circle
+						const collisionTopLeft = collideCircle(relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), deltaPosition, radius);
+						if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
+							hit = true;
+							tMin = collisionTopLeft.t;
+							wallNormal = collisionTopLeft.wn;
+							console.log('hit tl');
+						}
+						// Top Right Circle
+						const collisionTopRight = collideCircle(relativePosition.subtract(cornerMax), deltaPosition, radius);
+						if (collisionTopRight.hit && tMin > collisionTopRight.t) {
+							hit = true;
+							tMin = collisionTopRight.t;
+							wallNormal = collisionTopRight.wn;
+							console.log('hit tr');
+						}
+						// Bottom Left Circle
+						const collisionBottomLeft = collideCircle(relativePosition.subtract(cornerMin), deltaPosition, radius);
+						if (collisionBottomLeft.hit && tMin > collisionBottomLeft.t) {
+							hit = true;
+							tMin = collisionBottomLeft.t;
+							wallNormal = collisionBottomLeft.wn;
+							console.log('hit bl');
+						}
+						// Bottom Right Circle
+						const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(cornerMax.x, cornerMin.y)), deltaPosition, radius);
+						if (collisionBottomRight.hit && tMin > collisionBottomRight.t) {
+							hit = true;
+							tMin = collisionBottomRight.t;
+							wallNormal = collisionBottomRight.wn;
+							console.log('hit br');
+						}
+					} else {
+						const collision = collideCircle(relativePosition, deltaPosition, radius);
+						if (collision.hit && tMin > collision.t) {
+							hit = true;
+							tMin = collision.t;
+							wallNormal = collision.wn;
+						}
+					}
 				}
 			}
 		});
 
-		entity.position = entity.position.add(deltaPosition.scale(tMin));
+		const newPosition = entity.position.add(deltaPosition.scale(tMin));
+		const moveValid = entities.map((e) => entity == e || !intersects(entity, newPosition, e)).reduce((a, b) => a && b);
 
-		if (hit) {
-			console.log('normal', wallNormal, tMin);
-			console.log('before', entity.velocity, deltaPosition);
-			entity.velocity = entity.velocity.subtract(wallNormal.scale(entity.velocity.inner(wallNormal)));
-			deltaPosition = deltaPosition.subtract(wallNormal.scale(deltaPosition.inner(wallNormal)));
-			console.log('after', entity.velocity, deltaPosition);
+		if (moveValid) {
+			entity.position = newPosition;
+			if (hit) {
+				entity.velocity = entity.velocity.subtract(wallNormal.scale(entity.velocity.inner(wallNormal)));
+				deltaPosition = deltaPosition.subtract(wallNormal.scale(deltaPosition.inner(wallNormal)));
+			} else {
+				break;
+			}
 		} else {
 			break;
 		}
 	}
 
-	entities.forEach((e, index) => {
-			if (e != entity) {
-				if (entity.position.x + 0.5 * entity.size.x >= e.position.x - 0.5 * e.size.x &&
-					entity.position.x - 0.5 * entity.size.x <= e.position.x + 0.5 * e.size.x &&
-					entity.position.y + 0.5 * entity.size.y >= e.position.y - 0.5 * e.size.y &&
-					entity.position.y - 0.5 * entity.size.y <= e.position.y + 0.5 * e.size.y) {
-					insideNew = true;
-				}
+	/*entities.forEach((e, index) => {
+		if (e != entity) {
+			if (entity.position.x + 0.5 * entity.size.x >= e.position.x - 0.5 * e.size.x &&
+				entity.position.x - 0.5 * entity.size.x <= e.position.x + 0.5 * e.size.x &&
+				entity.position.y + 0.5 * entity.size.y >= e.position.y - 0.5 * e.size.y &&
+				entity.position.y - 0.5 * entity.size.y <= e.position.y + 0.5 * e.size.y) {
+				insideNew = true;
+				console.log('nope r', index);
 			}
-		});
+			const radius = entity.radius + e.radius;
+			if (entity.position.subtract(e.position).length() <= radius) {
+				insideNew = true;
+				console.log('nope c', index);
+			}
+		}
+	});
 
 	if (insideOld !== insideNew) {
-		// console.log('nope', entity.position.x, entity.position.y);
+		console.log('nope', entity.position.x, entity.position.y);
 	}
-	insideOld = insideNew;
+	insideOld = insideNew;*/
 }
 
-function collideWall(x, y, dx, dy, wx, wy1, wy2, tMin) {
+function intersects(e1, np, e2) {
+	if (e1 != e2) {
+		const rp = np.subtract(e2.position);
+		const sizeX = e1.size.x + e2.size.x;
+		const sizeY = e1.size.x + e2.size.x;
+		const radius = e1.radius + e2.radius;
+		const epsilon = 0.001;
+
+		if (sizeX) {
+			if (radius) {
+				const boxMin1 = new V3(sizeX + 2 * radius, sizeY - epsilon).scale(-0.5);
+				const boxMax1 = new V3(sizeX + 2 * radius, sizeY - epsilon).scale(0.5);
+				if (rp.x >= boxMin1.x && rp.x <= boxMax1.x && rp.y >= boxMin1.y && rp.y <= boxMax1.y) {
+					console.log('i bx', rp, boxMin1, boxMax1);
+					// return true;
+				}
+				const boxMin2 = new V3(sizeX - epsilon, sizeY + 2 * radius).scale(-0.5);
+				const boxMax2 = new V3(sizeX - epsilon, sizeY + 2 * radius).scale(0.5);
+				if (rp.x >= boxMin2.x && rp.x <= boxMax2.x && rp.y >= boxMin2.y && rp.y <= boxMax2.y) {
+					console.log('i by');
+					// return true;
+				}
+			} else {
+				const boxMin = new V3(sizeX, sizeY).scale(-0.5);
+				const boxMax = new V3(sizeX, sizeY).scale(0.5);
+				if (rp.x >= boxMin.x && rp.x <= boxMax.x && rp.y >= boxMin.y && rp.y <= boxMax.y) {
+					console.log('i b');
+					// return true;
+				}
+			}
+		}
+		
+		if (radius) {
+			const radiusSqare = radius * radius;
+			if (sizeX) {
+				const rpTL = rp.add(new V3(-0.5 * sizeX, 0.5 * sizeY));
+				if (rpTL.lengthSquare() <= radiusSqare) {
+					console.log('i tl');
+					return true;
+				}
+				const rpTR = rp.add(new V3(0.5 * sizeX, 0.5 * sizeY));
+				if (rpTR.lengthSquare() <= radiusSqare) {
+					console.log('i tr');
+					return true;
+				}
+				const rpBL = rp.add(new V3(-0.5 * sizeX, -0.5 * sizeY));
+				if (rpBL.lengthSquare() <= radiusSqare) {
+					console.log('i bl');
+					return true;
+				}
+				const rpBR = rp.add(new V3(0.5 * sizeX, -0.5 * sizeY));
+				if (rpBR.lengthSquare() <= radiusSqare) {
+					console.log('i br');
+					return true;
+				}
+			} else {
+				if (rp.lengthSquare() <= radius) {
+					console.log('i c');
+					return true;
+				}
+			}
+		}
+		
+	}
+	return false;
+}
+
+function collideWall(x, y, dx, dy, wx, wy1, wy2) {
 	let hit = false;
 	let t = 1.;
 	const epsilon = 0.0001;
 
 	if (dx !== 0.) {
 		const nt = (wx - x) / dx;
-		const ny = y + tMin * dy;
-		if ((nt >= 0.) && (nt < tMin) && (y >= wy1) && (y <= wy2) && (ny >= wy1) && (ny <= wy2)) {
+		const ny = y + t * dy;
+		if ((nt >= 0.) && (nt < t) && (y >= wy1) && (y <= wy2) && (ny >= wy1) && (ny <= wy2)) {
 			hit = true;
 			t = Math.max(0., nt - epsilon);
 		}
 	}
 
-	const log = `${hit}, ${t}, ${dx} != 0 <= ${(wx - x) / dx} <= ${tMin} && ${wy1} <= ${y + tMin * dy} <= ${wy2}`;
-	return {hit, t, log};
+	return {hit, t};
 }
 
-function collideBall() {
+function collideCircle(rp, dp, r) {
+	let hit = false;
+	let t = 1.;
+	let wn = new V3();
+	const epsilon = 0.0001;
 
+	const dpSqared = dp.inner(dp);
+	const reverseInnerDifference = rp.x * dp.y - rp.y * dp.x;
+	const deltaSquared = r * r * dpSqared - reverseInnerDifference * reverseInnerDifference;
+	if (deltaSquared >= 0) {
+		const inner = rp.inner(dp);
+		const delta = Math.sqrt(deltaSquared);
+		const tCandidate1 = (-inner + delta) / dpSqared;
+		const tFinalCandidate1 = (tCandidate1 > 0) ? tCandidate1 : t;
+		const tCandidate2 = (-inner - delta) / dpSqared;
+		const tFinalCandidate2 = (tCandidate2 > 0) ? tCandidate2 : t;
+		const tFinal = Math.min(tFinalCandidate1, tFinalCandidate2);
+		if (t > tFinal) {
+			hit = true;
+			t = Math.max(0, tFinal - epsilon);
+			wn = rp.add(dp.scale(t)).normalize();
+		}
+	}
+
+	return {hit, t, wn};
 }
 
 function draw() {
@@ -252,7 +382,7 @@ function draw() {
 		const position = entity.position.multiply(new V3(1., -1.)).scale(metersToPixels);
 		renderer.translate(position);
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const fullSize = entity.size.add(entity.radius.scale(2));
+		const fullSize = entity.size.add(new V3(entity.radius, entity.radius).scale(2));
 		const scalar = new V3(image.width / tileSizePixels, image.height / tileSizePixels).divide(fullSize);
 		renderer.scale(scalar);
 		renderer.scaleCenter(new V3(scale, scale), position);

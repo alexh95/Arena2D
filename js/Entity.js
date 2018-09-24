@@ -20,9 +20,8 @@ export const entities = [];
 export const EntityTypes = Object.freeze({
 	PLAYER: 0,
 	WALL: 1,
-	BALL: 2,
-	ELLIPSE_2_1: 3,
-	ELLIPSE_4_1: 4,
-	ELLIPSE_1_2: 5,
-	ELLIPSE_1_4: 6
+	SMALL_CIRCLE: 2,
+	SMALL_ROUNDED_SQUARE: 3,
+	MEDIUM_ROUNDED_SQUARE: 4,
+	LARGE_ROUNDED_SQUARE: 5
 });
