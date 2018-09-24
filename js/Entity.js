@@ -2,13 +2,18 @@ import {V3} from './Math.js';
 
 export class Entity {
 
-	constructor(type, position, size, radius, center) {
+	constructor(type, position, size, center, collisionBox, collisionRadius, collisionCenter) {
 		this.type = type;
 		this.position = position;
 		this.velocity = new V3(0., 0., 0.);
+
 		this.size = size;
-		this.radius = radius;
 		this.center = center;
+
+		this.collides = true;
+		this.collisionBox = collisionBox;
+		this.collisionRadius = collisionRadius;
+		this.collisionCenter = collisionCenter;
 	}
 
 }
@@ -27,5 +32,6 @@ export const EntityTypes = Object.freeze({
 	CIRCLE_LARGE: 6,
 	ROUNDED_SQUARE_SMALL: 7,
 	ROUNDED_SQUARE_MEDIUM: 8,
-	ROUNDED_SQUARE_LARGE: 9
+	ROUNDED_SQUARE_LARGE: 9,
+	WALL: 10
 });

@@ -46,7 +46,7 @@ export default class Renderer {
 	}
 
 	drawImage(image, center) {
-		this.context.drawImage(image, center.x, center.y);
+		this.context.drawImage(image, -center.x, -center.y);
 	}
 
 }
