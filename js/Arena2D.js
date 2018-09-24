@@ -419,7 +419,9 @@ function draw() {
 		renderer.restore();
 	});
 
-	debugDraw();
+	if (keys[Keys.P]) {
+		debugDraw();
+	}
 }
 
 function debugDraw() {
