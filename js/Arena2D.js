@@ -34,33 +34,61 @@ export default function start() {
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
-	entityTypeToImage[EntityTypes.SMALL_SQUARE] = imageStore.loadImage('res/small_square.png');
-	entityTypeToImage[EntityTypes.SMALL_CIRCLE] = imageStore.loadImage('res/small_circle.png');
-	entityTypeToImage[EntityTypes.SMALL_ROUNDED_SQUARE] = imageStore.loadImage('res/small_rounded_square.png');
-	entityTypeToImage[EntityTypes.MEDIUM_ROUNDED_SQUARE] = imageStore.loadImage('res/medium_rounded_square.png');
-	entityTypeToImage[EntityTypes.LARGE_ROUNDED_SQUARE] = imageStore.loadImage('res/large_rounded_square.png');
+	entityTypeToImage[EntityTypes.SQUARE_SMALL] = imageStore.loadImage('res/square_small.png');
+	entityTypeToImage[EntityTypes.SQUARE_MEDIUM] = imageStore.loadImage('res/square_medium.png');
+	entityTypeToImage[EntityTypes.SQUARE_LARGE] = imageStore.loadImage('res/square_large.png');
+	entityTypeToImage[EntityTypes.CIRCLE_SMALL] = imageStore.loadImage('res/circle_small.png');
+	entityTypeToImage[EntityTypes.CIRCLE_MEDIUM] = imageStore.loadImage('res/circle_medium.png');
+	entityTypeToImage[EntityTypes.CIRCLE_LARGE] = imageStore.loadImage('res/circle_large.png');
+	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_SMALL] = imageStore.loadImage('res/rounded_square_small.png');
+	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_MEDIUM] = imageStore.loadImage('res/rounded_square_medium.png');
+	entityTypeToImage[EntityTypes.ROUNDED_SQUARE_LARGE] = imageStore.loadImage('res/rounded_square_large.png');
 
-	const wallTL = new Entity(EntityTypes.SMALL_SQUARE, new V3(-0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	const wallTR = new Entity(EntityTypes.SMALL_SQUARE, new V3(0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	const wallBL = new Entity(EntityTypes.SMALL_SQUARE, new V3(8., -4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	const wallBR = new Entity(EntityTypes.SMALL_SQUARE, new V3(-8., -4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	const wallM = new Entity(EntityTypes.SMALL_SQUARE, new V3(0., 0.), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	const ballM = new Entity(EntityTypes.LARGE_ROUNDED_SQUARE, new V3(0., 0.), new V3(2. * tileSizeMeters, 2. * tileSizeMeters), tileSizeMeters, new V3(0.5, 0.5));
-	const ballBL = new Entity(EntityTypes.SMALL_CIRCLE, new V3(-0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	const ballBR = new Entity(EntityTypes.SMALL_CIRCLE, new V3(0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	player = new Entity(EntityTypes.PLAYER, new V3(2.5, 2.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
-	// player = new Entity(EntityTypes.SMALL_CIRCLE, new V3(2.5, 2.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
-	// player = new Entity(EntityTypes.SMALL_ROUNDED_SQUARE, new V3(3., 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
+	const playerSquareSmall = new Entity(EntityTypes.SQUARE_SMALL, new V3(3., 0.), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const playerCircleSmall = new Entity(EntityTypes.CIRCLE_SMALL, new V3(3., 0.), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const playerRoundedSquareSmall = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(3., 0.), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
 
-	entities.push(wallTL);
-	entities.push(wallTR);
-	// entities.push(wallBL);
-	// entities.push(wallBR);
-	// entities.push(wallM);
-	entities.push(ballM);
-	entities.push(ballBL);
-	entities.push(ballBR);
+	const squareSmall1 = new Entity(EntityTypes.SQUARE_SMALL, new V3(-0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const squareSmall2 = new Entity(EntityTypes.SQUARE_SMALL, new V3(0.95 * tileSizeMeters, 4.5), new V3(tileSizeMeters, tileSizeMeters), 0., new V3(0.5, 0.5));
+	const squareMedium1 = new Entity(EntityTypes.SQUARE_MEDIUM, new V3(8., -4.5), new V3(2 * tileSizeMeters, 2 * tileSizeMeters), 0., new V3(0.5, 0.5));
+	const squareMedium2 = new Entity(EntityTypes.SQUARE_MEDIUM, new V3(-8., -4.5), new V3(2 * tileSizeMeters, 2 * tileSizeMeters), 0., new V3(0.5, 0.5));
+	const squareLarge = new Entity(EntityTypes.SQUARE_LARGE, new V3(0., 0.), new V3(4 * tileSizeMeters, 4 * tileSizeMeters), 0., new V3(0.5, 0.5));
+
+	const circleSmall1 = new Entity(EntityTypes.CIRCLE_SMALL, new V3(-0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const circleSmall2 = new Entity(EntityTypes.CIRCLE_SMALL, new V3(0.95 * tileSizeMeters, -4.5), new V3(0., 0.), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const circleMedium1 = new Entity(EntityTypes.CIRCLE_MEDIUM, new V3(-8., 4.5), new V3(0., 0.), tileSizeMeters, new V3(0.5, 0.5));
+	const circleMedium2 = new Entity(EntityTypes.CIRCLE_MEDIUM, new V3(8. * tileSizeMeters, 4.5), new V3(0., 0.), tileSizeMeters, new V3(0.5, 0.5));
+	const circleLarge = new Entity(EntityTypes.CIRCLE_LARGE, new V3(0., 0.), new V3(0., 0.), 2. * tileSizeMeters, new V3(0.5, 0.5));
+
+	const roundedSquareSmall1 = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(-8., -tileSizeMeters), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
+	const roundedSquareSmall2 = new Entity(EntityTypes.ROUNDED_SQUARE_SMALL, new V3(-8., tileSizeMeters), new V3(0.5 * tileSizeMeters, 0.5 * tileSizeMeters), 0.25 * tileSizeMeters, new V3(0.5, 0.5));
+	const roundedSquareMedium1 = new Entity(EntityTypes.ROUNDED_SQUARE_MEDIUM, new V3(8., -1.5 * tileSizeMeters), new V3(tileSizeMeters, tileSizeMeters), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const roundedSquareMedium2 = new Entity(EntityTypes.ROUNDED_SQUARE_MEDIUM, new V3(8., 1.5 * tileSizeMeters), new V3(tileSizeMeters, tileSizeMeters), 0.5 * tileSizeMeters, new V3(0.5, 0.5));
+	const roundedSquareLarge = new Entity(EntityTypes.ROUNDED_SQUARE_LARGE, new V3(0., 0.), new V3(2. * tileSizeMeters, 2. * tileSizeMeters), tileSizeMeters, new V3(0.5, 0.5));
+
+	// player = playerSquareSmall;
+	player = playerCircleSmall;
+	// player = playerRoundedRectangleSmall;
+	
 	entities.push(player);
+
+	entities.push(squareSmall1);
+	entities.push(squareSmall2);
+	entities.push(squareMedium1);
+	entities.push(squareMedium2);
+	// entities.push(squareLarge);
+
+	entities.push(circleSmall1);
+	entities.push(circleSmall2);
+	entities.push(circleMedium1);
+	entities.push(circleMedium2);
+	entities.push(circleLarge);
+
+	entities.push(roundedSquareSmall1);
+	entities.push(roundedSquareSmall2);
+	entities.push(roundedSquareMedium1);
+	entities.push(roundedSquareMedium2);
+	// entities.push(roundedSquareLarge);
 
 	startLoop();
 }
@@ -148,15 +176,16 @@ function moveEntity(dt, entity, speed, direction) {
 						hit = true;
 						tMin = collisionLeft.t;
 						wallNormal = new V3(-1., 0.);
-						console.log('hit left');
+						// console.log('hit left');
 					}
 					// Right wall
+					// console.log('r', collisionIndex, relativePosition, relativePosition.add(deltaPosition), cornerMax.x + radius, cornerMin.y, cornerMax.y);
 					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x + radius, cornerMin.y, cornerMax.y, tMin);
 					if (collisionRight.hit && tMin > collisionRight.t) {
 						hit = true;
 						tMin = collisionRight.t;
 						wallNormal = new V3(1., 0.);
-						console.log('hit right');
+						// console.log('hit right');
 					}
 					// Bottom wall
 					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y - radius, cornerMin.x, cornerMax.x, tMin);
@@ -164,7 +193,7 @@ function moveEntity(dt, entity, speed, direction) {
 						hit = true;
 						tMin = collisionBottom.t;
 						wallNormal = new V3(0., -1.);
-						console.log('hit bottom');
+						// console.log('hit bottom');
 					}
 					// Top wall
 					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y + radius, cornerMin.x, cornerMax.x, tMin);
@@ -172,7 +201,7 @@ function moveEntity(dt, entity, speed, direction) {
 						hit = true;
 						tMin = collisionTop.t;
 						wallNormal = new V3(0., 1.);
-						console.log('hit top');
+						// console.log('hit top');
 					}
 				}
 				if (radius > 0) {
@@ -183,15 +212,16 @@ function moveEntity(dt, entity, speed, direction) {
 							hit = true;
 							tMin = collisionTopLeft.t;
 							wallNormal = collisionTopLeft.wn;
-							console.log('hit tl');
+							// console.log('hit tl');
 						}
 						// Top Right Circle
+						// console.log('tr', collisionIndex, relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), relativePosition.subtract(cornerMax).add(deltaPosition), radius);
 						const collisionTopRight = collideCircle(relativePosition.subtract(cornerMax), deltaPosition, radius);
 						if (collisionTopRight.hit && tMin > collisionTopRight.t) {
 							hit = true;
 							tMin = collisionTopRight.t;
 							wallNormal = collisionTopRight.wn;
-							console.log('hit tr');
+							// console.log('hit tr');
 						}
 						// Bottom Left Circle
 						const collisionBottomLeft = collideCircle(relativePosition.subtract(cornerMin), deltaPosition, radius);
@@ -199,7 +229,7 @@ function moveEntity(dt, entity, speed, direction) {
 							hit = true;
 							tMin = collisionBottomLeft.t;
 							wallNormal = collisionBottomLeft.wn;
-							console.log('hit bl');
+							// console.log('hit bl');
 						}
 						// Bottom Right Circle
 						const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(cornerMax.x, cornerMin.y)), deltaPosition, radius);
@@ -207,7 +237,7 @@ function moveEntity(dt, entity, speed, direction) {
 							hit = true;
 							tMin = collisionBottomRight.t;
 							wallNormal = collisionBottomRight.wn;
-							console.log('hit br');
+							// console.log('hit br');
 						}
 					} else {
 						const collision = collideCircle(relativePosition, deltaPosition, radius);
@@ -274,20 +304,20 @@ function intersects(e1, np, e2) {
 				const boxMax1 = new V3(sizeX + 2 * radius, sizeY - epsilon).scale(0.5);
 				if (rp.x >= boxMin1.x && rp.x <= boxMax1.x && rp.y >= boxMin1.y && rp.y <= boxMax1.y) {
 					console.log('i bx', rp, boxMin1, boxMax1);
-					// return true;
+					return true;
 				}
 				const boxMin2 = new V3(sizeX - epsilon, sizeY + 2 * radius).scale(-0.5);
 				const boxMax2 = new V3(sizeX - epsilon, sizeY + 2 * radius).scale(0.5);
 				if (rp.x >= boxMin2.x && rp.x <= boxMax2.x && rp.y >= boxMin2.y && rp.y <= boxMax2.y) {
 					console.log('i by');
-					// return true;
+					return true;
 				}
 			} else {
 				const boxMin = new V3(sizeX, sizeY).scale(-0.5);
 				const boxMax = new V3(sizeX, sizeY).scale(0.5);
 				if (rp.x >= boxMin.x && rp.x <= boxMax.x && rp.y >= boxMin.y && rp.y <= boxMax.y) {
 					console.log('i b');
-					// return true;
+					return true;
 				}
 			}
 		}
@@ -335,7 +365,7 @@ function collideWall(x, y, dx, dy, wx, wy1, wy2) {
 	if (dx !== 0.) {
 		const nt = (wx - x) / dx;
 		const ny = y + t * dy;
-		if ((nt >= 0.) && (nt < t) && (y >= wy1) && (y <= wy2) && (ny >= wy1) && (ny <= wy2)) {
+		if ((nt >= 0.) && (nt < t) && (((y >= wy1) && (y <= wy2)) || ((ny >= wy1) && (ny <= wy2)))) {
 			hit = true;
 			t = Math.max(0., nt - epsilon);
 		}
