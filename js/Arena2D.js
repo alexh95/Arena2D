@@ -37,12 +37,10 @@ export default function start() {
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
 
-	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), 
-		new V3(16, 32).scale(pixelsToMeters), new V3(8, 8).scale(pixelsToMeters), 
+	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), 
 		new V3(), 8 * pixelsToMeters, new V3(8, 8).scale(pixelsToMeters));
 
-	const wall = new Entity(EntityTypes.WALL, new V3(-2., 0.),
-		new V3(16, 16).scale(pixelsToMeters), new V3(8, 8).scale(pixelsToMeters),
+	const wall = new Entity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5),
 		new V3(16, 16).scale(pixelsToMeters), 0., new V3(8, 8).scale(pixelsToMeters));
 
 	player = playerCharacter;
@@ -351,23 +349,20 @@ function draw() {
 		renderer.save();
 
 		renderer.translate(renderer.size.scale(0.5));
-		// const cameraPosition = renderer.cameraPosition.scale(metersToPixels);
-		// renderer.translate(cameraPosition);
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.));
 		renderer.translate(playerPositionDelta.add(entityPositionDelta).scale(scale));
 
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const scalar = new V3(image.width / tileSizePixels, image.height / tileSizePixels).divide(entity.size);
-		renderer.scale(scalar.scale(scale));
-		// renderer.scaleCenter(scalar.scale(scale), entityPositionDelta);
+		const size = new V3(image.width, image.height);
+		renderer.scale(new V3(scale, scale));
 
-		const entityCenterDelta = entity.size.subtract(entity.center).scale(metersToPixels);
+		const entityCenterDelta = size.subtract(size.multiply(entity.center));
 		renderer.drawImage(image, entityCenterDelta);
 
 		renderer.restore();
 	});
 
-	if (keys[Keys.P]) {
+	if (!keys[Keys.P]) {
 		debugDraw();
 	}
 }
