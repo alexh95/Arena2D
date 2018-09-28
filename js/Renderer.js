@@ -12,6 +12,7 @@ export default class Renderer {
 	setSize() {
 		this.canvas.width = window.innerWidth;
 		this.canvas.height = window.innerHeight;
+		this.context.imageSmoothingEnabled = false;
 	}
 
 	get size() {
@@ -45,8 +46,8 @@ export default class Renderer {
 		this.translate(center);
 	}
 
-	drawImage(image, center) {
-		this.context.drawImage(image, -center.x, -center.y);
+	drawImage(image, center, destinationSize) {
+		this.context.drawImage(image, -center.x, -center.y, destinationSize.x, destinationSize.y);
 	}
 
 }

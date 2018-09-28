@@ -11,7 +11,7 @@ const tileSizeMeters = 1.;
 const tileSizePixels = 16;
 const metersToPixels = tileSizePixels / tileSizeMeters;
 const pixelsToMeters = tileSizeMeters / tileSizePixels;
-let scale = 2.;
+let scale = 4.;
 
 const keys = new Array(256).fill(false);
 
@@ -353,11 +353,10 @@ function draw() {
 		renderer.translate(playerPositionDelta.add(entityPositionDelta).scale(scale));
 
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const size = new V3(image.width, image.height);
-		renderer.scale(new V3(scale, scale));
+		const size = new V3(image.width, image.height).scale(scale);
 
 		const entityCenterDelta = size.subtract(size.multiply(entity.center));
-		renderer.drawImage(image, entityCenterDelta);
+		renderer.drawImage(image, entityCenterDelta, size);
 
 		renderer.restore();
 	});
