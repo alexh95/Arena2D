@@ -1,7 +1,7 @@
 import Renderer from './Renderer.js';
 import ImageStore from './ImageStore.js';
 import {V3, displayText} from './Math.js';
-import {Entity, EntityTypes, entities, entityTypeToImage} from './Entity.js';
+import {CollisionModel, Entity, EntityTypes, entities, entityTypeToImage, SpritesheetModel} from './Entity.js';
 import {Keys, nameVersionDisplay} from './Constants.js';
 
 const renderer = new Renderer();
@@ -36,14 +36,21 @@ export default function start() {
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
+	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 
-	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), 
-		new V3(), 8 * pixelsToMeters, new V3(8, 8).scale(pixelsToMeters));
+	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), null,
+		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(), 8 * pixelsToMeters));
 
-	const wall = new Entity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5),
-		new V3(16, 16).scale(pixelsToMeters), 0., new V3(8, 8).scale(pixelsToMeters));
+	const wall = new Entity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5), null,
+		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(16, 16).scale(pixelsToMeters)));
 
-	player = playerCharacter;
+	const wall1 = new Entity(EntityTypes.WALL, new V3(-2., 2.), new V3(0.5, 0.5), null,
+		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(16, 16).scale(pixelsToMeters)));
+
+	const testSpritesheet = new Entity(EntityTypes.TEST_SPRITESHEET, new V3(2., 0.), new V3(0.5, 0.25), new SpritesheetModel(new V3(4, 4)),
+		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(), 8 * pixelsToMeters));
+
+	player = testSpritesheet;
 	
 	entities.push(wall);
 	entities.push(player);
@@ -99,10 +106,18 @@ function update(dt) {
 	if (keys[Keys.S]) {
 		direction.y -= 1.;
 	}
-	// direction.x = 1.;
-	// direction.y = 1.;
 
 	direction.normalizeEquals();
+
+	if (direction.x > 0) {
+		player.spritesheetModel.index.y = 0;
+	} else if (direction.x < 0) {
+		player.spritesheetModel.index.y = 2;
+	} else if (direction.y > 0) {
+		player.spritesheetModel.index.y = 1;
+	} else if (direction.y < 0) {
+		player.spritesheetModel.index.y = 3;
+	}
 
 	moveEntity(dt, player, speed, direction);
 }
@@ -116,8 +131,6 @@ function moveEntity(dt, entity, speed, direction) {
 	let deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
 	entity.velocity = entity.velocity.add(acceleration.scale(dt));
 
-	const epsilon = 0.001;
-
 	for (let collisionIndex = 0; collisionIndex < 4; ++collisionIndex) {
 		let hit = false;
 		let tMin = 1.;
@@ -126,10 +139,12 @@ function moveEntity(dt, entity, speed, direction) {
 		entities.forEach((e, index) => {
 			if (e != entity && e.collides && entity.collides) {
 				const relativePosition = entity.position.subtract(e.position);
-				const cornerMin = entity.collisionBox.add(e.collisionBox).scale(-0.5);
-				const cornerMax = entity.collisionBox.add(e.collisionBox).scale(0.5);
-				const radius = e.collisionRadius + entity.collisionRadius;
+				const cornerMin = entity.collisionModel.box.add(e.collisionModel.box).scale(-0.5);
+				const cornerMax = entity.collisionModel.box.add(e.collisionModel.box).scale(0.5);
+				const radius = e.collisionModel.radius + entity.collisionModel.radius;
+
 				if (cornerMin.x) {
+					const epsilon = radius && 0.001 || 0.;
 					// Left wall
 					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x - radius + epsilon, cornerMin.y, cornerMax.y, tMin);
 					if (collisionLeft.hit && tMin > collisionLeft.t) {
@@ -232,9 +247,9 @@ function moveEntity(dt, entity, speed, direction) {
 function intersects(e1, np, e2) {
 	if (e1 != e2 && e1.collides && e2.collides) {
 		const rp = np.subtract(e2.position);
-		const sizeX = e1.collisionBox.x + e2.collisionBox.x;
-		const sizeY = e1.collisionBox.x + e2.collisionBox.x;
-		const radius = e1.collisionRadius + e2.collisionRadius;
+		const sizeX = e1.collisionModel.box.x + e2.collisionModel.box.x;
+		const sizeY = e1.collisionModel.box.x + e2.collisionModel.box.x;
+		const radius = e1.collisionModel.radius + e2.collisionModel.radius;
 		const epsilon = 0.001;
 
 		if (sizeX) {
@@ -333,7 +348,8 @@ function collideCircle(rp, dp, r) {
 		if (t > tFinal) {
 			hit = true;
 			t = Math.max(0., tFinal - epsilon);
-			wn = rp.add(dp.scale(t)).normalize();
+			// wn = rp.add(dp.scale(t)).normalize();
+			wn = rp.normalize();
 		}
 	}
 
@@ -353,10 +369,17 @@ function draw() {
 		renderer.translate(playerPositionDelta.add(entityPositionDelta).scale(scale));
 
 		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const size = new V3(image.width, image.height).scale(scale);
-
-		const entityCenterDelta = size.subtract(size.multiply(entity.center));
-		renderer.drawImage(image, entityCenterDelta, size);
+		if (entity.spritesheetModel) {
+			const srcSize = new V3(image.width, image.height).divide(entity.spritesheetModel.size);
+			const dstSize = srcSize.scale(scale);
+			const entityCenterDelta = dstSize.subtract(dstSize.multiply(entity.center));
+			renderer.drawSprite(image, srcSize.multiply(entity.spritesheetModel.index), srcSize, entityCenterDelta, dstSize);
+		} else {
+			const size = new V3(image.width, image.height).scale(scale);
+			const entityCenterDelta = size.subtract(size.multiply(entity.center));
+			renderer.drawImage(image, entityCenterDelta, size);
+		}
+		
 
 		renderer.restore();
 	});

@@ -46,8 +46,12 @@ export default class Renderer {
 		this.translate(center);
 	}
 
-	drawImage(image, center, destinationSize) {
-		this.context.drawImage(image, -center.x, -center.y, destinationSize.x, destinationSize.y);
+	drawImage(image, dst, dstSize) {
+		this.context.drawImage(image, -dst.x, -dst.y, dstSize.x, dstSize.y);
+	}
+
+	drawSprite(image, src, srcSize, dst, dstSize) {
+		this.context.drawImage(image, src.x, src.y, srcSize.x, srcSize.y, -dst.x, -dst.y, dstSize.x, dstSize.y);
 	}
 
 }
