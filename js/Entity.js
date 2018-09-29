@@ -15,6 +15,8 @@ export class SpritesheetModel {
 	constructor(size, index = new V3()) {
 		this.size = size;
 		this.index = index;
+		this.elapsed = 0.;
+		this.period = 0.25;
 	}
 
 }
@@ -24,7 +26,7 @@ export class Entity {
 	constructor(type, position, center, spritesheetModel, collisionModel = null) {
 		this.type = type;
 		this.position = position;
-		this.velocity = new V3(0., 0., 0.);
+		this.velocity = new V3();
 		this.center = center;
 		this.spritesheetModel = spritesheetModel;
 		this.collides = !!collisionModel;
@@ -37,10 +39,18 @@ export const entityTypeToImage = [];
 
 export const entities = [];
 
-export const EntityTypes = Object.freeze({
-	SPRITES: 0,
-	PLAYER: 1,
-	WALL: 2,
-	SPRITE_SHEETS: 3,
-	TEST_SPRITESHEET: 4
+const entityTypeNames = [
+	'SPRITES',
+	'PLAYER',
+	'WALL',
+	'HORIZONTAL_WALL',
+	'VERTICAL_WALL',
+	'SPRITE_SHEETS',
+	'TEST_SPRITESHEET'
+	];
+const entityTypes = {};
+entityTypeNames.forEach((entityTypeName, index) => {
+	entityTypes[entityTypeName] = index;
 });
+
+export const EntityTypes = Object.freeze(entityTypes);

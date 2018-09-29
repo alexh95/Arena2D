@@ -36,6 +36,8 @@ export default function start() {
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
+	entityTypeToImage[EntityTypes.HORIZONTAL_WALL] = imageStore.loadImage('res/horizontal_wall.png');
+	entityTypeToImage[EntityTypes.VERTICAL_WALL] = imageStore.loadImage('res/vertical_wall.png');
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 
 	const playerCharacter = new Entity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), null,
@@ -44,8 +46,14 @@ export default function start() {
 	const wall = new Entity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5), null,
 		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(16, 16).scale(pixelsToMeters)));
 
-	const wall1 = new Entity(EntityTypes.WALL, new V3(-2., 2.), new V3(0.5, 0.5), null,
+	const wall1 = new Entity(EntityTypes.WALL, new V3(0., 0.), new V3(0.5, 0.5), null,
 		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(16, 16).scale(pixelsToMeters)));
+
+	const wallH = new Entity(EntityTypes.HORIZONTAL_WALL, new V3(0., -4.), new V3(0.5, 0.5), null,
+		new CollisionModel(new V3(32, 8).scale(pixelsToMeters), new V3(64, 16).scale(pixelsToMeters)));
+
+	const wallV = new Entity(EntityTypes.VERTICAL_WALL, new V3(8., 0.), new V3(0.5, 0.5), null,
+		new CollisionModel(new V3(8, 32).scale(pixelsToMeters), new V3(16, 64).scale(pixelsToMeters)));
 
 	const testSpritesheet = new Entity(EntityTypes.TEST_SPRITESHEET, new V3(2., 0.), new V3(0.5, 0.25), new SpritesheetModel(new V3(4, 4)),
 		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(), 8 * pixelsToMeters));
@@ -53,6 +61,8 @@ export default function start() {
 	player = testSpritesheet;
 	
 	entities.push(wall);
+	entities.push(wallH);
+	entities.push(wallV);
 	entities.push(player);
 
 	startLoop();
@@ -109,14 +119,29 @@ function update(dt) {
 
 	direction.normalizeEquals();
 
-	if (direction.x > 0) {
+	const absDirX = Math.abs(direction.x);
+	const absDirY = Math.abs(direction.y);
+
+	if (direction.x > 0 && absDirX > absDirY) {
 		player.spritesheetModel.index.y = 0;
-	} else if (direction.x < 0) {
+	} else if (direction.x < 0 && absDirX > absDirY) {
 		player.spritesheetModel.index.y = 2;
-	} else if (direction.y > 0) {
+	} else if (direction.y > 0 && absDirY > absDirX) {
 		player.spritesheetModel.index.y = 1;
-	} else if (direction.y < 0) {
+	} else if (direction.y < 0 && absDirY > absDirX) {
 		player.spritesheetModel.index.y = 3;
+	}
+
+	if (direction.length()) {
+		player.spritesheetModel.elapsed += dt;
+		if (player.spritesheetModel.elapsed >= player.spritesheetModel.period) {
+			player.spritesheetModel.elapsed -= player.spritesheetModel.period;
+			if(++player.spritesheetModel.index.x >= player.spritesheetModel.size.x) {
+				player.spritesheetModel.index.x = 0;
+			}
+		}
+	} else {
+		player.spritesheetModel.index.x = 0;
 	}
 
 	moveEntity(dt, player, speed, direction);
@@ -248,7 +273,7 @@ function intersects(e1, np, e2) {
 	if (e1 != e2 && e1.collides && e2.collides) {
 		const rp = np.subtract(e2.position);
 		const sizeX = e1.collisionModel.box.x + e2.collisionModel.box.x;
-		const sizeY = e1.collisionModel.box.x + e2.collisionModel.box.x;
+		const sizeY = e1.collisionModel.box.y + e2.collisionModel.box.y;
 		const radius = e1.collisionModel.radius + e2.collisionModel.radius;
 		const epsilon = 0.001;
 
