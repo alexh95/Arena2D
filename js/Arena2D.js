@@ -14,6 +14,11 @@ const pixelsToMeters = tileSizeMeters / tileSizePixels;
 let scale = 4.;
 
 const keys = new Array(256).fill(false);
+const mouse = {
+	position: new V3(),
+	left: false,
+	right: false
+};
 
 let player = null;
 
@@ -32,6 +37,35 @@ export default function start() {
 		if (event.keyCode == 18) {
 			event.preventDefault();
 		}
+	});
+	window.addEventListener('contextmenu', (event) => {
+		event.preventDefault();
+	});
+	window.addEventListener('mousedown', (event) => {
+		// console.log(event);
+		switch (event.which) {
+			case 1: {
+				mouse.left = true;
+			} break;
+			case 3: {
+				mouse.right = true;
+			} break;
+		}
+	});
+	window.addEventListener('mouseup', (event) => {
+		// console.log(event);
+		switch (event.which) {
+			case 1: {
+				mouse.left = false;
+			} break;
+			case 3: {
+				mouse.right = false;
+			} break;
+		}
+	});
+	window.addEventListener('mousemove', (event) => {
+		mouse.position.x = event.offsetX;
+		mouse.position.y = event.offsetY;
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
@@ -55,7 +89,7 @@ export default function start() {
 	const wallV = new Entity(EntityTypes.VERTICAL_WALL, new V3(8., 0.), new V3(0.5, 0.5), null,
 		new CollisionModel(new V3(8, 32).scale(pixelsToMeters), new V3(16, 64).scale(pixelsToMeters)));
 
-	const testSpritesheet = new Entity(EntityTypes.TEST_SPRITESHEET, new V3(2., 0.), new V3(0.5, 0.25), new SpritesheetModel(new V3(4, 4)),
+	const testSpritesheet = new Entity(EntityTypes.TEST_SPRITESHEET, new V3(2., 0.), new V3(0.5, 0.25), new SpritesheetModel(new V3(4, 4, 1)),
 		new CollisionModel(new V3(8, 8).scale(pixelsToMeters), new V3(), 8 * pixelsToMeters));
 
 	player = testSpritesheet;
@@ -102,9 +136,16 @@ function loop(msElapsed) {
 
 function update(dt) {
 	const speed = 50.;
-	const direction = new V3();
+	let direction;
+	if (mouse.right) {
+		const canvasSize = renderer.size;
+		const mousePosition = new V3(mouse.position.x, canvasSize.y - mouse.position.y);
+		direction = mousePosition.subtract(canvasSize.scale(0.5)).normalize();
+	} else {
+		direction = new V3();
+	}
 
-	if (keys[Keys.A]) {
+	/*if (keys[Keys.A]) {
 		direction.x -= 1.;
 	}
 	if (keys[Keys.D]) {
@@ -117,7 +158,7 @@ function update(dt) {
 		direction.y -= 1.;
 	}
 
-	direction.normalizeEquals();
+	direction.normalizeEquals();*/
 
 	const absDirX = Math.abs(direction.x);
 	const absDirY = Math.abs(direction.y);
@@ -389,7 +430,10 @@ function draw() {
 	entities.forEach((entity) => { 
 		renderer.save();
 
-		renderer.translate(renderer.size.scale(0.5));
+		const screenOffset = renderer.size.scale(0.5);
+		screenOffset.x = Math.floor(screenOffset.x);
+		screenOffset.y = Math.floor(screenOffset.y);
+		renderer.translate(screenOffset);
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.));
 		renderer.translate(playerPositionDelta.add(entityPositionDelta).scale(scale));
 
@@ -439,9 +483,9 @@ function debugDraw() {
 	renderer.context.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
 	const keysPressed = keys.map((value, index) => value ? String.fromCharCode(index) + ' ' + index : 0).filter((value) => value);
 	renderer.context.fillText(keysPressed, 10, 90);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 120);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 150);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 5, 180);
+	renderer.context.fillText(`Mouse: (${mouse.position.x}, ${mouse.position.y})` + (mouse.left ? ' L' : '') + (mouse.middle ? ' M' : '') + (mouse.right ? ' R' : ''), 10, 120);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 150);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 180);
 
 	// Top Right
 	const playerPositionText = `Player Pos: (${displayText(player.position.x, 2, 0.01, true)},${displayText(player.position.y, 2, 0.01, true)})`;

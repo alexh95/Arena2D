@@ -12,6 +12,11 @@ export class V3 {
 		this.z = that.z;
 	}
 
+	clone() {
+		const result = new V3(this.x, this.y, this.z);
+		return result;
+	}
+
 	negate() {
 		const result = new V3(-this.x, -this.y, -this.z);
 		return result;

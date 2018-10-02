@@ -52,6 +52,8 @@ export default class Renderer {
 
 	drawSprite(image, src, srcSize, dst, dstSize) {
 		this.context.drawImage(image, src.x, src.y, srcSize.x, srcSize.y, -dst.x, -dst.y, dstSize.x, dstSize.y);
+		// this.context.drawImage(image, 0, 32, 16, 32, -16, -48, 32, 64);
+		// this.context.drawImage(image, 0, 0, 16, 32, -8, -24, 16, 32);
 	}
 
 }
