@@ -2,10 +2,21 @@ import {V3} from './Math.js';
 
 export class CollisionModel {
 
-	constructor(center, box, radius = 0.) {
+	constructor(center, boxScale, radiusScale = 0.) {
 		this.center = center;
-		this.box = box;
-		this.radius = radius;
+		this.boxScale = boxScale;
+		this.box = new V3();
+		this.radiusScale = radiusScale;
+		this.radius = 0;
+	}
+
+}
+
+export class RepeatedModel {
+
+	constructor(direction, count) {
+		this.direction = direction;
+		this.count = count;
 	}
 
 }
@@ -23,14 +34,26 @@ export class SpritesheetModel {
 
 export class Entity {
 
-	constructor(type, position, center, spritesheetModel, collisionModel = null) {
+	constructor(type, position, center, collisionModel, repeatedModel, spritesheetModel, imageStore, pixelsToMeters) {
 		this.type = type;
 		this.position = position;
 		this.velocity = new V3();
 		this.center = center;
-		this.spritesheetModel = spritesheetModel;
-		this.collides = !!collisionModel;
+
 		this.collisionModel = collisionModel;
+		if (this.collisionModel) {
+			const image = imageStore.images[entityTypeToImage[type]];
+			const size = new V3(image.width, image.height).scale(pixelsToMeters);
+			if (spritesheetModel) {
+				size.divideEquals(spritesheetModel.size);
+			}
+			size.multiplyEquals(this.collisionModel.boxScale);
+			const minDimension = Math.min(size.x, size.y);
+			this.collisionModel.radius = 0.5 * this.collisionModel.radiusScale * minDimension;
+			this.collisionModel.box.addEquals(size.subtract(new V3(1., 1.).scale(2. * this.collisionModel.radius)));
+		}
+		this.repeatedModel = repeatedModel;
+		this.spritesheetModel = spritesheetModel;
 	}
 
 }
