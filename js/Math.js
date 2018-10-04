@@ -72,7 +72,7 @@ export class V3 {
 	}
 
 	scaleEquals(scalar) {
-		const scaled = this.scale(that);
+		const scaled = this.scale(scalar);
 		this.copyFrom(scaled);
 		return this;
 	}

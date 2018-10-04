@@ -1,7 +1,7 @@
 import Renderer from './Renderer.js';
 import ImageStore from './ImageStore.js';
 import {V3, displayText} from './Math.js';
-import {CollisionModel, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
+import {CollisionModelData, CollisionModel, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
 import {Keys, nameVersionDisplay} from './Constants.js';
 
 const renderer = new Renderer();
@@ -89,58 +89,65 @@ export default function start() {
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
 	entityTypeToImage[EntityTypes.WALL] = imageStore.loadImage('res/wall.png');
-	entityTypeToImage[EntityTypes.HORIZONTAL_WALL] = imageStore.loadImage('res/horizontal_wall.png');
-	entityTypeToImage[EntityTypes.VERTICAL_WALL] = imageStore.loadImage('res/vertical_wall.png');
+	entityTypeToImage[EntityTypes.BALL] = imageStore.loadImage('res/ball.png');
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 
 	startLoop();
 }
 
-function createEntity(type, position, center, collisionModel) {
-	return new Entity(type, position, center, collisionModel, null, null, imageStore, pixelsToMeters);
+function createEntity(type, position, center, collisionModelData, repeatedModel, spritesheetModel) {
+	const image = imageStore.images[entityTypeToImage[type]];
+	const imageSize = new V3(image.width, image.height);
+	if (spritesheetModel) {
+		imageSize.divideEquals(spritesheetModel.size);
+	}
+	imageSize.scaleEquals(pixelsToMeters);
+	const collisionModel = collisionModelData.buildCollisionModel(imageSize);
+	return new Entity(type, position, center, collisionModel, repeatedModel, spritesheetModel);
 }
 
-function createSpreadsheetEntity(type, position, center, collisionModel, spritesheetModel) {
-	return new Entity(type, position, center, collisionModel, null, spritesheetModel, imageStore, pixelsToMeters);
+function createSimpleEntity(type, position, center, collisionModelData) {
+	return createEntity(type, position, center, collisionModelData, null, null);
 }
 
-function createRepeatedEntity(type, position, center, collisionModel, repeatedModel) {
-	return new Entity(type, position, center, collisionModel, repeatedModel, null, imageStore, pixelsToMeters);
+function createSpreadsheetEntity(type, position, center, collisionModelData, spritesheetModel) {
+	return createEntity(type, position, center, collisionModelData, null, spritesheetModel);
+}
+
+function createRepeatedEntity(type, position, center, collisionModelData, repeatedModel) {
+	return createEntity(type, position, center, collisionModelData, repeatedModel, null);
 }
 
 function startLoop() {
 	if (imageStore.isLoadingFinished()) {
-		const playerCharacter = createEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.), 8 * pixelsToMeters));
+		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.), 8 * pixelsToMeters));
+		const wallE = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
+		const wallN = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 63));
+		const wallW = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 63));
+		const wallS = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 63));
 
-		// const wall = createEntity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)));
+		const wallLN = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 24));
+		const wallLW = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallLE1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallLS1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 9));
+		const wallLE2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallLS2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
+		const wallLS3 = createRepeatedEntity(EntityTypes.WALL, new V3(-27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
 
-		const wallE = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
-		const wallN = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, 31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 63));
-		const wallW = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, 31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 63));
-		const wallS = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, -31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 63));
+		const wallRN = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 24));
+		const wallRE = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallRW1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallRS1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 9));
+		const wallRW2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallRS2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
+		const wallRS3 = createRepeatedEntity(EntityTypes.WALL, new V3(27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
 
-		const wallLN = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 28.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 24));
-		const wallLW = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
-		const wallLE1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
-		const wallLS1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 9));
-		const wallLE2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
-		const wallLS2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 5));
-		const wallLS3 = createRepeatedEntity(EntityTypes.WALL, new V3(-27.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 4));
+		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 30.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
 
-		const wallRN = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 28.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 24));
-		const wallRE = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
-		const wallRW1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
-		const wallRS1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 9));
-		const wallRW2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
-		const wallRS2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 5));
-		const wallRS3 = createRepeatedEntity(EntityTypes.WALL, new V3(27.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 4));
-
-		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModel(new V3(0.5, 0.5), new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
+		const ball = createSimpleEntity(EntityTypes.BALL, new V3(-7.5, 30.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.), 1));
 
 		player = testSpritesheet;
 		
-		// entities.push(wall);
-
 		entities.push(wallE);
 		entities.push(wallN);
 		entities.push(wallW);
@@ -163,6 +170,9 @@ function startLoop() {
 		entities.push(wallRS3);
 
 		entities.push(player);
+
+		entities.push(ball);
+
 
 		window.requestAnimationFrame(loop);
 	} else {

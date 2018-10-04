@@ -2,12 +2,28 @@ import {V3} from './Math.js';
 
 export class CollisionModel {
 
+	constructor(center, box, radius) {
+		this.center = center;
+		this.box = box;
+		this.radius = radius;
+	}
+
+}
+
+export class CollisionModelData {
+
 	constructor(center, boxScale, radiusScale = 0.) {
 		this.center = center;
 		this.boxScale = boxScale;
-		this.box = new V3();
 		this.radiusScale = radiusScale;
-		this.radius = 0;
+	}
+
+	buildCollisionModel(imageSize) {
+		imageSize.multiplyEquals(this.boxScale);
+		const minDimension = Math.min(imageSize.x, imageSize.y);
+		const radius = 0.5 * this.radiusScale * minDimension;
+		const box = imageSize.subtract(new V3(1., 1.).scale(2. * radius));
+		return new CollisionModel(this.center, box, radius);
 	}
 
 }
@@ -34,24 +50,13 @@ export class SpritesheetModel {
 
 export class Entity {
 
-	constructor(type, position, center, collisionModel, repeatedModel, spritesheetModel, imageStore, pixelsToMeters) {
+	constructor(type, position, center, collisionModel, repeatedModel, spritesheetModel) {
 		this.type = type;
 		this.position = position;
 		this.velocity = new V3();
 		this.center = center;
 
 		this.collisionModel = collisionModel;
-		if (this.collisionModel) {
-			const image = imageStore.images[entityTypeToImage[type]];
-			const size = new V3(image.width, image.height).scale(pixelsToMeters);
-			if (spritesheetModel) {
-				size.divideEquals(spritesheetModel.size);
-			}
-			size.multiplyEquals(this.collisionModel.boxScale);
-			const minDimension = Math.min(size.x, size.y);
-			this.collisionModel.radius = 0.5 * this.collisionModel.radiusScale * minDimension;
-			this.collisionModel.box.addEquals(size.subtract(new V3(1., 1.).scale(2. * this.collisionModel.radius)));
-		}
 		this.repeatedModel = repeatedModel;
 		this.spritesheetModel = spritesheetModel;
 	}
@@ -66,8 +71,7 @@ const entityTypeNames = [
 	'SPRITES',
 	'PLAYER',
 	'WALL',
-	'HORIZONTAL_WALL',
-	'VERTICAL_WALL',
+	'BALL',
 	'SPRITE_SHEETS',
 	'TEST_SPRITESHEET'
 	];
