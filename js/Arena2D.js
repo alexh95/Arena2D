@@ -11,7 +11,7 @@ const tileSizeMeters = 1.;
 const tileSizePixels = 16;
 const metersToPixels = tileSizePixels / tileSizeMeters;
 const pixelsToMeters = tileSizeMeters / tileSizePixels;
-let scale = 1.;
+let zoomLevel = 1.;
 
 const keys = new Array(256).fill(false);
 const mouse = {
@@ -70,9 +70,21 @@ export default function start() {
 			} break;
 		}
 	});
+	window.addEventListener('mousewheel', (event) => {
+		// console.log(event);
+		const zoomDelta = event.deltaY / -100;
+		zoomLevel += zoomDelta;
+		if (zoomLevel < 1) {
+			zoomLevel = 1;
+		} else if (zoomLevel > 8) {
+			zoomLevel = 8;
+		}
+	});
 	window.addEventListener('mousemove', (event) => {
-		mouse.position.x = event.offsetX;
-		mouse.position.y = event.offsetY;
+		const screenPosition = new V3(event.offsetX, event.offsetY);
+		const canvasSize = renderer.size;
+		const worldPosition = new V3(screenPosition.x, canvasSize.y - screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
+		mouse.position = worldPosition.scale(1. / zoomLevel);
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
@@ -100,24 +112,56 @@ function startLoop() {
 	if (imageStore.isLoadingFinished()) {
 		const playerCharacter = createEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.), 8 * pixelsToMeters));
 
-		const wall = createEntity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)));
+		// const wall = createEntity(EntityTypes.WALL, new V3(-2., 0.), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)));
 
 		const wallE = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
 		const wallN = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, 31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 63));
 		const wallW = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, 31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 63));
 		const wallS = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, -31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 63));
 
-		const wallLT = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
+		const wallLN = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 28.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 24));
+		const wallLW = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallLE1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallLS1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 9));
+		const wallLE2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallLS2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 5));
+		const wallLS3 = createRepeatedEntity(EntityTypes.WALL, new V3(-27.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 4));
+
+		const wallRN = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 28.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 24));
+		const wallRE = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallRW1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 27.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallRS1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 9));
+		const wallRW2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 13.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallRS2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 5));
+		const wallRS3 = createRepeatedEntity(EntityTypes.WALL, new V3(27.5, 4.5), new V3(0.5, 0.5), new CollisionModel(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 4));
 
 		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModel(new V3(0.5, 0.5), new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
 
 		player = testSpritesheet;
 		
-		entities.push(wall);
+		// entities.push(wall);
+
 		entities.push(wallE);
 		entities.push(wallN);
 		entities.push(wallW);
 		entities.push(wallS);
+
+		entities.push(wallLN);
+		entities.push(wallLW);
+		entities.push(wallLE1);
+		entities.push(wallLS1);
+		entities.push(wallLE2);
+		entities.push(wallLS2);
+		entities.push(wallLS3);
+
+		entities.push(wallRN);
+		entities.push(wallRE);
+		entities.push(wallRW1);
+		entities.push(wallRS1);
+		entities.push(wallRW2);
+		entities.push(wallRS2);
+		entities.push(wallRS3);
+
 		entities.push(player);
 
 		window.requestAnimationFrame(loop);
@@ -151,12 +195,11 @@ function loop(msElapsed) {
 }
 
 function update(dt) {
-	const speed = 50.;
+	const speed = mouse.left ? 500. : 50.;
+
 	let direction;
 	if (mouse.right) {
-		const canvasSize = renderer.size;
-		const mousePosition = new V3(mouse.position.x, canvasSize.y - mouse.position.y);
-		direction = mousePosition.subtract(canvasSize.scale(0.5)).normalize();
+		direction = mouse.position.clone();
 	} else {
 		direction = new V3();
 	}
@@ -202,6 +245,7 @@ function update(dt) {
 	}
 
 	moveEntity(dt, player, speed, direction);
+	renderer.cameraPosition = player.position.clone();
 }
 
 let insideOld = false;
@@ -216,7 +260,7 @@ function moveEntity(dt, entity, speed, direction) {
 	for (let collisionIndex = 0; collisionIndex < 4; ++collisionIndex) {
 		let hit = false;
 		let tMin = 1.;
-		let wallNormal = new V3(0., 0.);
+		let wallNormal = new V3();
 
 		entities.forEach((e, index) => {
 			if (e != entity && e.collisionModel && entity.collisionModel) {
@@ -454,7 +498,7 @@ function collideCircle(rp, dp, r) {
 function draw() {
 	renderer.clear();
 
-	const playerPositionDelta = player.position.scale(metersToPixels).multiply(new V3(-1., 1.));
+	const cameraPositionDelta = renderer.cameraPosition.scale(metersToPixels).multiply(new V3(-1., 1.));
 
 	entities.forEach((entity) => { 
 		renderer.save();
@@ -464,16 +508,16 @@ function draw() {
 		screenOffset.y = Math.floor(screenOffset.y);
 		renderer.translate(screenOffset);
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.));
-		renderer.translate(playerPositionDelta.add(entityPositionDelta).scale(scale));
+		renderer.translate(cameraPositionDelta.add(entityPositionDelta).scale(zoomLevel));
 
 		const image = imageStore.images[entityTypeToImage[entity.type]];
 		if (entity.spritesheetModel) {
 			const srcSize = new V3(image.width, image.height).divide(entity.spritesheetModel.size);
-			const dstSize = srcSize.scale(scale);
+			const dstSize = srcSize.scale(zoomLevel);
 			const entityCenterDelta = dstSize.subtract(dstSize.multiply(entity.center));
 			renderer.drawSprite(image, srcSize.multiply(entity.spritesheetModel.index), srcSize, entityCenterDelta, dstSize);
 		} else {
-			const size = new V3(image.width, image.height).scale(scale);
+			const size = new V3(image.width, image.height).scale(zoomLevel);
 			const centerOffset = size.multiply(entity.center);
 
 			if (entity.repeatedModel) {
@@ -521,7 +565,8 @@ function debugDraw() {
 	renderer.context.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
 	const keysPressed = keys.map((value, index) => value ? String.fromCharCode(index) + ' ' + index : 0).filter((value) => value);
 	renderer.context.fillText(keysPressed, 10, 90);
-	renderer.context.fillText(`Mouse: (${mouse.position.x}, ${mouse.position.y})` + (mouse.left ? ' L' : '') + (mouse.middle ? ' M' : '') + (mouse.right ? ' R' : ''), 10, 120);
+	const mouseWorldPosition = mouse.position.add(player.position);
+	renderer.context.fillText(`Mouse: (${displayText(mouseWorldPosition.x, 2, 0.01, true)}, ${displayText(mouseWorldPosition.y, 2, 0.01, true)})` + (mouse.left ? ' L' : '') + (mouse.middle ? ' M' : '') + (mouse.right ? ' R' : ''), 10, 120);
 	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 150);
 	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 180);
 
