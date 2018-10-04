@@ -2,8 +2,9 @@ import {V3} from './Math.js';
 
 export class CollisionModel {
 
-	constructor(center, box, radius) {
+	constructor(center, mass, box, radius) {
 		this.center = center;
+		this.mass = mass;
 		this.box = box;
 		this.radius = radius;
 	}
@@ -12,8 +13,9 @@ export class CollisionModel {
 
 export class CollisionModelData {
 
-	constructor(center, boxScale, radiusScale = 0.) {
+	constructor(center, mass, boxScale, radiusScale = 0.) {
 		this.center = center;
+		this.mass = mass;
 		this.boxScale = boxScale;
 		this.radiusScale = radiusScale;
 	}
@@ -23,7 +25,7 @@ export class CollisionModelData {
 		const minDimension = Math.min(imageSize.x, imageSize.y);
 		const radius = 0.5 * this.radiusScale * minDimension;
 		const box = imageSize.subtract(new V3(1., 1.).scale(2. * radius));
-		return new CollisionModel(this.center, box, radius);
+		return new CollisionModel(this.center, this.mass, box, radius);
 	}
 
 }

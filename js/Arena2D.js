@@ -22,6 +22,8 @@ const mouse = {
 };
 
 let player = null;
+let square1 = null;
+let ball1 = null;
 
 export default function start() {
 	console.log(nameVersionDisplay);
@@ -120,33 +122,36 @@ function createRepeatedEntity(type, position, center, collisionModelData, repeat
 
 function startLoop() {
 	if (imageStore.isLoadingFinished()) {
-		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.), 8 * pixelsToMeters));
-		const wallE = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
-		const wallN = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 63));
-		const wallW = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 63));
-		const wallS = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 63));
+		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.), 8 * pixelsToMeters));
+		const wallE = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., 1.), 63));
+		const wallN = createRepeatedEntity(EntityTypes.WALL, new V3(31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 63));
+		const wallW = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, 31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 63));
+		const wallS = createRepeatedEntity(EntityTypes.WALL, new V3(-31.5, -31.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 63));
 
-		const wallLN = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 24));
-		const wallLW = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
-		const wallLE1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
-		const wallLS1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 9));
-		const wallLE2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
-		const wallLS2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
-		const wallLS3 = createRepeatedEntity(EntityTypes.WALL, new V3(-27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
+		const wallLN = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 24));
+		const wallLW = createRepeatedEntity(EntityTypes.WALL, new V3(-28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallLE1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallLS1 = createRepeatedEntity(EntityTypes.WALL, new V3(-5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 9));
+		const wallLE2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallLS2 = createRepeatedEntity(EntityTypes.WALL, new V3(-14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
+		const wallLS3 = createRepeatedEntity(EntityTypes.WALL, new V3(-27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
 
-		const wallRN = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 24));
-		const wallRE = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
-		const wallRW1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
-		const wallRS1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 9));
-		const wallRW2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
-		const wallRS2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
-		const wallRS3 = createRepeatedEntity(EntityTypes.WALL, new V3(27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
+		const wallRN = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 28.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 24));
+		const wallRE = createRepeatedEntity(EntityTypes.WALL, new V3(28.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 24));
+		const wallRW1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 27.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 14));
+		const wallRS1 = createRepeatedEntity(EntityTypes.WALL, new V3(5.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 9));
+		const wallRW2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 13.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(0., -1.), 9));
+		const wallRS2 = createRepeatedEntity(EntityTypes.WALL, new V3(14.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(1., 0.), 6));
+		const wallRS3 = createRepeatedEntity(EntityTypes.WALL, new V3(27.5, 4.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 1.)), new RepeatedModel(new V3(-1., 0.), 6));
 
-		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 30.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
+		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
 
-		const ball = createSimpleEntity(EntityTypes.BALL, new V3(-7.5, 30.5), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), new V3(1., 1.), 1));
+		const square = createSimpleEntity(EntityTypes.WALL, new V3(5., 0.), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0.25, new V3(1., 1.), 1));
+		const ball = createSimpleEntity(EntityTypes.BALL, new V3(-5., 0.), new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 0.25, new V3(1., 1.), 1));
 
 		player = testSpritesheet;
+		square1 = square;
+		ball1 = ball;
 		
 		entities.push(wallE);
 		entities.push(wallN);
@@ -170,9 +175,8 @@ function startLoop() {
 		entities.push(wallRS3);
 
 		entities.push(player);
-
-		entities.push(ball);
-
+		entities.push(square1);
+		entities.push(ball1);
 
 		window.requestAnimationFrame(loop);
 	} else {
@@ -205,8 +209,6 @@ function loop(msElapsed) {
 }
 
 function update(dt) {
-	const speed = mouse.left ? 500. : 50.;
-
 	let direction;
 	if (mouse.right) {
 		direction = mouse.position.clone();
@@ -254,8 +256,13 @@ function update(dt) {
 		player.spritesheetModel.index.x = 0;
 	}
 
-	moveEntity(dt, player, speed, direction);
+	moveEntity(dt, player, mouse.left ? 500. : 80., direction);
 	renderer.cameraPosition = player.position.clone();
+
+	const squareDirection = player.position.add(player.velocity.scale(dt)).subtract(square1.position.add(square1.velocity.scale(dt))).normalize();
+	moveEntity(dt, square1, 40., squareDirection);
+
+	moveEntity(dt, ball1, 0., new V3());
 }
 
 let insideOld = false;
@@ -269,6 +276,7 @@ function moveEntity(dt, entity, speed, direction) {
 
 	for (let collisionIndex = 0; collisionIndex < 4; ++collisionIndex) {
 		let hit = false;
+		let hitEntity = null;
 		let tMin = 1.;
 		let wallNormal = new V3();
 
@@ -372,6 +380,10 @@ function moveEntity(dt, entity, speed, direction) {
 						}
 					}
 				}
+
+				if (hit && !hitEntity) {
+					hitEntity = e;
+				}
 			}
 		});
 
@@ -382,8 +394,13 @@ function moveEntity(dt, entity, speed, direction) {
 		if (moveValid) {
 			entity.position = newPosition;
 			if (hit) {
-				entity.velocity = entity.velocity.subtract(wallNormal.scale(entity.velocity.inner(wallNormal)));
-				deltaPosition = deltaPosition.subtract(wallNormal.scale(deltaPosition.inner(wallNormal)));
+				const velocityReduction = wallNormal.scale(entity.velocity.inner(wallNormal));
+				if (entity.collisionModel.mass && hitEntity.collisionModel.mass) {
+					const massRatio = entity.collisionModel.mass / hitEntity.collisionModel.mass;
+					hitEntity.velocity.addEquals(velocityReduction.scale(massRatio));
+				}
+				entity.velocity.subtractEquals(velocityReduction);
+				deltaPosition.subtractEquals(wallNormal.scale(deltaPosition.inner(wallNormal)));
 			} else {
 				break;
 			}
@@ -426,7 +443,7 @@ function intersects(e1, np, e2) {
 		}
 		
 		if (radius) {
-			const radiusSqare = radius * radius;
+			const radiusSqare = radius * radius;d
 			if (sizeX) {
 				const rpTL = rp.add(new V3(-0.5 * sizeX, 0.5 * sizeY));
 				if (rpTL.lengthSquare() <= radiusSqare) {
