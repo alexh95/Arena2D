@@ -77,6 +77,10 @@ export default function start() {
 			} break;
 		}
 	});
+	window.addEventListener('touchstart', (event) => {
+		// console.log('touchstart', event);
+		mouse.left = true;
+	});
 	window.addEventListener('mouseup', (event) => {
 		// console.log(event);
 		switch (event.which) {
@@ -91,6 +95,10 @@ export default function start() {
 			} break;
 		}
 	});
+	window.addEventListener('touchend', (event) => {
+		// console.log('touchend', event);
+		mouse.left = false;
+	});
 	window.addEventListener('mousewheel', (event) => {
 		// console.log(event);
 		const zoomDelta = event.deltaY / -100;
@@ -102,8 +110,18 @@ export default function start() {
 		}
 	});
 	window.addEventListener('mousemove', (event) => {
+		// console.log(event);
 		mouse.screenPosition.x = event.offsetX;
 		mouse.screenPosition.y = event.offsetY;
+		const canvasSize = renderer.size;
+		const worldPosition = new V3(mouse.screenPosition.x, canvasSize.y - mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
+		mouse.position = worldPosition.scale(1. / zoomLevel);
+	});
+
+	window.addEventListener('touchmove', (event) => {
+		// console.log('touchmove', event);
+		mouse.screenPosition.x = event.changedTouches[0].clientX;
+		mouse.screenPosition.y = event.changedTouches[0].clientY;
 		const canvasSize = renderer.size;
 		const worldPosition = new V3(mouse.screenPosition.x, canvasSize.y - mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
 		mouse.position = worldPosition.scale(1. / zoomLevel);
