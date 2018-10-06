@@ -32,9 +32,10 @@ export class CollisionModelData {
 
 export class RepeatedModel {
 
-	constructor(direction, count) {
+	constructor(direction, count, sizeScale = new V3(1., 1.)) {
 		this.direction = direction;
 		this.count = count;
+		this.sizeScale = sizeScale;
 	}
 
 }
@@ -52,12 +53,11 @@ export class SpritesheetModel {
 
 export class Entity {
 
-	constructor(type, position, center, sizeScale, collisionModel, repeatedModel, spritesheetModel) {
+	constructor(type, position, center, collisionModel, repeatedModel, spritesheetModel) {
 		this.type = type;
 		this.position = position;
 		this.velocity = new V3();
 		this.center = center;
-		this.sizeScale = sizeScale;
 
 		this.collisionModel = collisionModel;
 		this.repeatedModel = repeatedModel;
@@ -73,15 +73,15 @@ export const entities = [];
 const entityTypeNames = [
 	'SPRITES',
 	'PLAYER',
-	'WALL',
 	'WALL_HORIZONTAL',
 	'WALL_VERTICAL',
 	'WALL_BOTTOM_LEFT_CORNER',
 	'WALL_BOTTOM_RIGHT_CORNER',
 	'WALL_TOP_LEFT_CORNER',
 	'WALL_TOP_RIGHT_CORNER',
-	'WALL_T',
-	'BALL',
+	'WALL_T_CORNER',
+	'BOX',
+	'BARREL',
 	'SPRITE_SHEETS',
 	'TEST_SPRITESHEET'
 	];
