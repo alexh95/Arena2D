@@ -31,7 +31,7 @@ let barrel1 = null;
 
 let lastP = false;
 let lastG = false;
-let debugInfoOn = true;
+let debugInfoOn = false;
 let debugGridOn = false;
 
 export default function start() {
@@ -109,6 +109,7 @@ export default function start() {
 	entityTypeToImage[EntityTypes.BOX] = imageStore.loadImage('res/box.png');
 	entityTypeToImage[EntityTypes.BARREL] = imageStore.loadImage('res/barrel.png');
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
+	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
 
 	startLoop();
@@ -116,9 +117,6 @@ export default function start() {
 
 function createEntity(type, position, center, collisionModelData, repeatedModel, spritesheetModel) {
 	const image = imageStore.images[entityTypeToImage[type]];
-	if (!image) {
-		console.log('n');
-	}
 	const imageSize = new V3(image.width, image.height);
 	if (spritesheetModel) {
 		imageSize.divideEquals(spritesheetModel.size);
@@ -227,12 +225,12 @@ function startLoop() {
 		const wallT6 = createBottomRightCornerlWall(new V3(7.5, -5.5));
 		const wallT7 = createTCornerWall(new V3(11.5, -5.5));
 
-		const testSpritesheet = createSpreadsheetEntity(EntityTypes.TEST_SPRITESHEET, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(1., 0.5), 1.), new SpritesheetModel(new V3(4, 4, 1)));
+		const playerSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(0.5, 0.25), 1.), new SpritesheetModel(new V3(4, 4, 1)));
 
 		const box = createBox(new V3(5.5, 0.5));
 		const barrel = createBarrel(new V3(-5.5, 0.5));
 
-		player = playerCharacter;//testSpritesheet;
+		player = playerSpritesheet;
 		box1 = box;
 		barrel1 = barrel;
 		
@@ -631,6 +629,7 @@ function draw() {
 		}
 	}
 
+	entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
 
 	entities.forEach((entity) => { 
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.)).scale(zoomLevel);
