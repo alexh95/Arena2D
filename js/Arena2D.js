@@ -15,15 +15,21 @@ let zoomLevel = 1.;
 
 const keys = new Array(256).fill(false);
 const mouse = {
+	screenPosition: new V3(),
 	position: new V3(),
 	left: false,
 	middle: false,
 	right: false
 };
+const joystick = {
+	direction: new V3()
+};
 
 const grassTileFrom = new V3(-32, -32);
 const grassTileTo = new V3(31, 31);
 let grassTile = null;
+let joystickBaseIndex = null;
+let joystickStickIndex = null;
 
 let player = null;
 let box1 = null;
@@ -34,8 +40,12 @@ let lastG = false;
 let debugInfoOn = false;
 let debugGridOn = false;
 
+let isAndroid = false;
+
 export default function start() {
-	console.log(nameVersionDisplay, navigator.platform);
+	console.log(nameVersionDisplay);
+
+	isAndroid = window.navigator.userAgent.toLowerCase().indexOf('android') > 0;
 
 	window.addEventListener('resize', (event) => renderer.setSize());
 	window.addEventListener('keydown', (event) => {
@@ -92,9 +102,10 @@ export default function start() {
 		}
 	});
 	window.addEventListener('mousemove', (event) => {
-		const screenPosition = new V3(event.offsetX, event.offsetY);
+		mouse.screenPosition.x = event.offsetX;
+		mouse.screenPosition.y = event.offsetY;
 		const canvasSize = renderer.size;
-		const worldPosition = new V3(screenPosition.x, canvasSize.y - screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
+		const worldPosition = new V3(mouse.screenPosition.x, canvasSize.y - mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
 		mouse.position = worldPosition.scale(1. / zoomLevel);
 	});
 
@@ -111,6 +122,8 @@ export default function start() {
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
+	joystickBaseIndex = imageStore.loadImage('res/joystick_base.png');
+	joystickStickIndex = imageStore.loadImage('res/joystick_stick.png');
 
 	startLoop();
 }
@@ -293,27 +306,44 @@ function update(dt) {
 	}
 	lastG = keys[Keys.G];
 
-	let direction;
-	if (mouse.right) {
-		direction = mouse.position.clone();
+	let direction = new V3();
+	if (isAndroid && mouse.left) {
+		const canvasSize = renderer.size;
+		const diameter = 0.4 * canvasSize.y - 16;
+		const joystickSize = new V3(diameter , diameter);
+		const joystickOffset = new V3(16., canvasSize.y - joystickSize.y - 16.);
+		const delta = joystickOffset.add(joystickSize.scale(0.5)).subtract(mouse.screenPosition).scale(2. / (0.75 * diameter));
+		delta.x = -delta.x;
+		const distance = delta.length();
+		if (distance < 1.) {
+			direction = delta;
+		} else if (distance < 2.) {
+			direction = delta
+			direction.normalizeEquals();
+		}
 	} else {
-		direction = new V3();
-	}
+		if (mouse.right) {
+			direction = mouse.position.clone();
+		} else {
+			direction = new V3();
+		}
 
-	if (keys[Keys.A]) {
-		direction.x -= 1.;
-	}
-	if (keys[Keys.D]) {
-		direction.x += 1.;
-	}
-	if (keys[Keys.W]) {
-		direction.y += 1.;
-	}
-	if (keys[Keys.S]) {
-		direction.y -= 1.;
-	}
+		if (keys[Keys.A]) {
+			direction.x -= 1.;
+		}
+		if (keys[Keys.D]) {
+			direction.x += 1.;
+		}
+		if (keys[Keys.W]) {
+			direction.y += 1.;
+		}
+		if (keys[Keys.S]) {
+			direction.y -= 1.;
+		}
 
-	direction.normalizeEquals();
+		direction.normalizeEquals();
+	}
+	joystick.direction = direction;
 
 	const absDirX = Math.abs(direction.x);
 	const absDirY = Math.abs(direction.y);
@@ -342,7 +372,7 @@ function update(dt) {
 		}
 	}
 
-	moveEntity(dt, player, mouse.left ? 500. : 80., direction);
+	moveEntity(dt, player, mouse.left ? 80./*500.*/ : 80., direction);
 	renderer.cameraPosition = player.position.clone();
 
 	const squareDirection = new V3(); //player.position.add(player.velocity.scale(dt)).subtract(box1.position.add(box1.velocity.scale(dt))).normalize();
@@ -616,7 +646,8 @@ function draw() {
 	renderer.save();
 
 	const cameraPositionDelta = renderer.cameraPosition.scale(metersToPixels * zoomLevel).multiply(new V3(-1., 1.));
-	const screenOffset = renderer.size.scale(0.5);
+	const canvasSize = renderer.size;
+	const screenOffset = canvasSize.scale(0.5);
 	renderer.translate(cameraPositionDelta.add(screenOffset));
 
 	const grassImage = imageStore.images[grassTile];
@@ -657,6 +688,21 @@ function draw() {
 		
 	});
 	renderer.restore();
+
+	if (isAndroid) {
+		renderer.save();
+		const diameter = 0.4 * canvasSize.y - 16;
+		const joystickSize = new V3(diameter, diameter);
+		const joystickOffset = new V3(-16., joystickSize.y - canvasSize.y + 16.);
+		const baseImage = imageStore.images[joystickBaseIndex];
+		renderer.drawImage(baseImage, joystickOffset, joystickSize);
+		const stickImage = imageStore.images[joystickStickIndex];
+		const stickDirectionOffset = joystick.direction.scale(0.5 * diameter);
+		stickDirectionOffset.x = -stickDirectionOffset.x;
+		const stickOffset = joystickOffset.add(stickDirectionOffset);
+		renderer.drawImage(stickImage, stickOffset, joystickSize);
+		renderer.restore();
+	}
 
 	if (debugInfoOn) {
 		debugDraw();
@@ -732,5 +778,5 @@ function debugDraw() {
 function infoDraw() {
 	renderer.context.fillStyle = 'rgb(255,255,255)';
 	renderer.context.font = '30px courier';
-	renderer.context.fillText(nameVersionDisplay + ' ' + navigator.platform, 10, 30);
+	renderer.context.fillText(nameVersionDisplay, 10, 30);
 }
