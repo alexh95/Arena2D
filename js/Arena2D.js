@@ -35,7 +35,7 @@ let debugInfoOn = false;
 let debugGridOn = false;
 
 export default function start() {
-	console.log(nameVersionDisplay);
+	console.log(nameVersionDisplay, navigator.platform);
 
 	window.addEventListener('resize', (event) => renderer.setSize());
 	window.addEventListener('keydown', (event) => {
@@ -660,6 +660,8 @@ function draw() {
 
 	if (debugInfoOn) {
 		debugDraw();
+	} else {
+		infoDraw();
 	}
 }
 
@@ -725,4 +727,10 @@ function debugDraw() {
 	// Bottom Rignt
 	const nameVersionDisplayTextMetrics = renderer.context.measureText(nameVersionDisplay);
 	renderer.context.fillText(nameVersionDisplay, renderer.canvas.width - nameVersionDisplayTextMetrics.width - 5, renderer.canvas.height - 5);
+}
+
+function infoDraw() {
+	renderer.context.fillStyle = 'rgb(255,255,255)';
+	renderer.context.font = '30px courier';
+	renderer.context.fillText(nameVersionDisplay + ' ' + navigator.platform, 10, 30);
 }
