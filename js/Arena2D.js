@@ -1,8 +1,9 @@
 import Renderer from './Renderer.js';
 import ImageStore from './ImageStore.js';
 import {V3, displayText} from './Math.js';
-import {CollisionModelData, CollisionModel, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
-import {Keys, nameVersionDisplay} from './Constants.js';
+import {CollisionModelData, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
+import {Controller} from './Controller.js';
+import {nameVersionDisplay} from './Constants.js';
 
 const renderer = new Renderer();
 const imageStore = new ImageStore();
@@ -13,14 +14,8 @@ const metersToPixels = tileSizePixels / tileSizeMeters;
 const pixelsToMeters = tileSizeMeters / tileSizePixels;
 let zoomLevel = 1.;
 
-const keys = new Array(256).fill(false);
-const mouse = {
-	screenPosition: new V3(),
-	position: new V3(),
-	left: false,
-	middle: false,
-	right: false
-};
+const controller = new Controller();
+
 const joystick = {
 	direction: new V3()
 };
@@ -35,9 +30,9 @@ let player = null;
 let box1 = null;
 let barrel1 = null;
 
-let lastP = false;
-let lastG = false;
-let debugInfoOn = false;
+let debugInfoToggleOld = false;
+let debugGridToggleOld = false;
+let debugInfoOn = true;
 let debugGridOn = false;
 
 let isAndroid = false;
@@ -47,15 +42,15 @@ export default function start() {
 
 	isAndroid = window.navigator.userAgent.toLowerCase().indexOf('android') > 0;
 
-	window.addEventListener('resize', (event) => renderer.setSize());
+	window.addEventListener('resize', () => renderer.setSize());
 	window.addEventListener('keydown', (event) => {
-		keys[event.keyCode] = true;
+		controller.setKey(event.keyCode, true);
 		if (event.keyCode == 9) {
 			event.preventDefault();
 		}
 	});
 	window.addEventListener('keyup', (event) => {
-		keys[event.keyCode] = false;
+		controller.setKey(event.keyCode, false);
 		if (event.keyCode == 18) {
 			event.preventDefault();
 		}
@@ -67,37 +62,37 @@ export default function start() {
 		// console.log(event);
 		switch (event.which) {
 			case 1: {
-				mouse.left = true;
+				controller.mouse.left = true;
 			} break;
 			case 2: {
-				mouse.middle = true;
+				controller.mouse.middle = true;
 			} break;
 			case 3: {
-				mouse.right = true;
+				controller.mouse.right = true;
 			} break;
 		}
 	});
 	window.addEventListener('touchstart', (event) => {
 		// console.log('touchstart', event);
-		mouse.left = true;
+		controller.mouse.left = true;
 	});
 	window.addEventListener('mouseup', (event) => {
 		// console.log(event);
 		switch (event.which) {
 			case 1: {
-				mouse.left = false;
+				controller.mouse.left = false;
 			} break;
 			case 2: {
-				mouse.middle = false;
+				controller.mouse.middle = false;
 			} break;
 			case 3: {
-				mouse.right = false;
+				controller.mouse.right = false;
 			} break;
 		}
 	});
 	window.addEventListener('touchend', (event) => {
 		// console.log('touchend', event);
-		mouse.left = false;
+		controller.mouse.left = false;
 	});
 	window.addEventListener('mousewheel', (event) => {
 		// console.log(event);
@@ -111,20 +106,20 @@ export default function start() {
 	});
 	window.addEventListener('mousemove', (event) => {
 		// console.log(event);
-		mouse.screenPosition.x = event.offsetX;
-		mouse.screenPosition.y = event.offsetY;
+		controller.mouse.screenPosition.x = event.offsetX;
+		controller.mouse.screenPosition.y = event.offsetY;
 		const canvasSize = renderer.size;
-		const worldPosition = new V3(mouse.screenPosition.x, canvasSize.y - mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
-		mouse.position = worldPosition.scale(1. / zoomLevel);
+		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
+		controller.mouse.position = worldPosition.scale(1. / zoomLevel);
 	});
 
 	window.addEventListener('touchmove', (event) => {
 		// console.log('touchmove', event);
-		mouse.screenPosition.x = event.changedTouches[0].clientX;
-		mouse.screenPosition.y = event.changedTouches[0].clientY;
+		controller.mouse.screenPosition.x = event.changedTouches[0].clientX;
+		controller.mouse.screenPosition.y = event.changedTouches[0].clientY;
 		const canvasSize = renderer.size;
-		const worldPosition = new V3(mouse.screenPosition.x, canvasSize.y - mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
-		mouse.position = worldPosition.scale(1. / zoomLevel);
+		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
+		controller.mouse.position = worldPosition.scale(1. / zoomLevel);
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
@@ -308,29 +303,34 @@ function loop(msElapsed) {
 	msElapsedOld = msElapsed;
 	const dt = msDelta / 1000;
 
+	// const d1 = Date.now();
 	update(dt);
+	// const d2 = Date.now();
+	// console.log('update', d2 - d1);
 
 	draw();
+	// const d3 = Date.now();
+	// console.log('draw', d3 - d2);
 }
 
 function update(dt) {
-	if (keys[Keys.P] && !lastP) {
+	if (controller.debugInfoToggle != debugInfoToggleOld) {
 		debugInfoOn = !debugInfoOn;
 	}
-	lastP = keys[Keys.P];
+ 	debugInfoToggleOld = controller.debugInfoToggle;
 
-	if (keys[Keys.G] && !lastG) {
+	if (controller.debugInfoToggle != debugGridToggleOld) {
 		debugGridOn = !debugGridOn;
 	}
-	lastG = keys[Keys.G];
+	debugGridToggleOld = controller.debugInfoToggle;
 
 	let direction = new V3();
-	if (isAndroid && mouse.left) {
+	if (isAndroid && controller.mouse.left) {
 		const canvasSize = renderer.size;
 		const diameter = 0.4 * canvasSize.y - 16;
 		const joystickSize = new V3(diameter , diameter);
 		const joystickOffset = new V3(16., canvasSize.y - joystickSize.y - 16.);
-		const delta = joystickOffset.add(joystickSize.scale(0.5)).subtract(mouse.screenPosition).scale(2. / (0.75 * diameter));
+		const delta = joystickOffset.add(joystickSize.scale(0.5)).subtract(controller.mouse.screenPosition).scale(2. / (0.75 * diameter));
 		delta.x = -delta.x;
 		const distance = delta.length();
 		if (distance < 1.) {
@@ -340,23 +340,23 @@ function update(dt) {
 			direction.normalizeEquals();
 		}
 	} else {
-		if (mouse.right) {
-			direction = mouse.position.clone();
+		if (controller.mouse.right) {
+			direction = controller.mouse.position.clone();
 		} else {
 			direction = new V3();
 		}
 
-		if (keys[Keys.A]) {
+		if (controller.left) {
 			direction.x -= 1.;
 		}
-		if (keys[Keys.D]) {
+		if (controller.right) {
 			direction.x += 1.;
 		}
-		if (keys[Keys.W]) {
-			direction.y += 1.;
-		}
-		if (keys[Keys.S]) {
+		if (controller.down) {
 			direction.y -= 1.;
+		}
+		if (controller.up) {
+			direction.y += 1.;
 		}
 
 		direction.normalizeEquals();
@@ -390,7 +390,7 @@ function update(dt) {
 		}
 	}
 
-	moveEntity(dt, player, mouse.left ? 80./*500.*/ : 80., direction);
+	moveEntity(dt, player, controller.mouse.left ? 80./*500.*/ : 80., direction);
 	renderer.cameraPosition = player.position.clone();
 
 	const squareDirection = new V3(); //player.position.add(player.velocity.scale(dt)).subtract(box1.position.add(box1.velocity.scale(dt))).normalize();
@@ -678,7 +678,7 @@ function draw() {
 		}
 	}
 
-	entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
+	// entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
 
 	entities.forEach((entity) => { 
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.)).scale(zoomLevel);
@@ -730,21 +730,21 @@ function draw() {
 }
 
 function debugDraw() {
-	renderer.context.lineWidth = '1';
-	renderer.context.strokeStyle = 'rgb(255,0,0)';
-	renderer.context.fillStyle = 'rgb(255,0,0)';
-	renderer.context.font = '30px courier';
+	renderer.context2d.lineWidth = '1';
+	renderer.context2d.strokeStyle = 'rgb(255,0,0)';
+	renderer.context2d.fillStyle = 'rgb(255,0,0)';
+	renderer.context2d.font = '30px courier';
 
+	const canvasSize = renderer.size;
 	if (debugGridOn) {
 		renderer.save();
-		renderer.context.fillStyle = 'rgb(255,255,0)';
-		renderer.context.globalAlpha = 0.5;
-		const canvasSize = renderer.size;
+		renderer.context2d.fillStyle = 'rgb(255,255,0)';
+		renderer.context2d.globalAlpha = 0.5;
 		const cameraOffset = renderer.cameraPosition.scale(metersToPixels);
 		for (let y = -32; y <= 31; ++y) {
 			for (let x = -32; x <= 31; ++x) {
 				if ((y + x) % 2 === 0) {
-					renderer.context.fillRect(
+					renderer.context2d.fillRect(
 						0.5 * (canvasSize.x) + zoomLevel * (x * metersToPixels - cameraOffset.x), 
 						0.5 * (canvasSize.y) - zoomLevel * (y * metersToPixels - cameraOffset.y), 
 						tileSizePixels * zoomLevel, 
@@ -755,46 +755,45 @@ function debugDraw() {
 		renderer.restore();
 	}
 
-	renderer.context.strokeRect(0.5, 0.5, renderer.canvas.width - 1, renderer.canvas.height - 1);
+
+	renderer.context2d.strokeRect(0.5, 0.5, canvasSize.x - 1, canvasSize.y - 1);
 
 	// Center
-	const center = new V3(0.5 * renderer.canvas.width + (renderer.canvas.width % 2 == 0 ? 0.5 : 0),
-						  0.5 * renderer.canvas.height + (renderer.canvas.height % 2 == 0 ? 0.5 : 0));
-	const crossWidth = renderer.canvas.width % 2 == 0 ? 1 : 0;
-	const crossHeight = renderer.canvas.height % 2 == 0 ? 1 : 0;
-	renderer.context.strokeRect(center.x - crossWidth, center.y - 32, crossWidth, 64 - crossHeight);
-	renderer.context.strokeRect(center.x - 32, center.y - crossHeight, 64 - crossWidth, crossHeight);
-	renderer.context.fillText('X', center.x + 32, center.y + 8);
-	renderer.context.fillText('-X', center.x - 70, center.y + 8);
-	renderer.context.fillText('Y', center.x - 10, center.y - 40);
-	renderer.context.fillText('-Y', center.x - 27, center.y + 56);
+	const center = new V3(0.5 * canvasSize.x + (canvasSize.x % 2 == 0 ? 0.5 : 0),
+						  0.5 * canvasSize.y + (canvasSize.y % 2 == 0 ? 0.5 : 0));
+	const crossWidth = canvasSize.x % 2 == 0 ? 1 : 0;
+	const crossHeight = canvasSize.y % 2 == 0 ? 1 : 0;
+	renderer.context2d.strokeRect(center.x - crossWidth, center.y - 32, crossWidth, 64 - crossHeight);
+	renderer.context2d.strokeRect(center.x - 32, center.y - crossHeight, 64 - crossWidth, crossHeight);
+	renderer.context2d.fillText('X', center.x + 32, center.y + 8);
+	renderer.context2d.fillText('-X', center.x - 70, center.y + 8);
+	renderer.context2d.fillText('Y', center.x - 10, center.y - 40);
+	renderer.context2d.fillText('-Y', center.x - 27, center.y + 56);
 
 	// Top Left
-	renderer.context.fillText('Resolution: ' + renderer.canvas.width + ' x ' + renderer.canvas.height, 10, 30);
-	renderer.context.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
-	const keysPressed = keys.map((value, index) => value ? String.fromCharCode(index) + ' ' + index : 0).filter((value) => value);
-	renderer.context.fillText(keysPressed, 10, 90);
-	const mouseWorldPosition = mouse.position.add(player.position);
-	renderer.context.fillText(`Mouse: (${displayText(mouseWorldPosition.x, 2, 0.01, true)}, ${displayText(mouseWorldPosition.y, 2, 0.01, true)})` + (mouse.left ? ' L' : '') + (mouse.middle ? ' M' : '') + (mouse.right ? ' R' : ''), 10, 120);
+	renderer.context2d.fillText('Resolution: ' + canvasSize.x + ' x ' + canvasSize.y, 10, 30);
+	renderer.context2d.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
+	const mouseWorldPosition = controller.mouse.position.add(player.position);
+	renderer.context2d.fillText(`Mouse: (${displayText(mouseWorldPosition.x, 2, 0.01, true)}, ${displayText(mouseWorldPosition.y, 2, 0.01, true)})` + (controller.mouse.left ? ' L' : '') + (controller.mouse.middle ? ' M' : '') + (controller.mouse.right ? ' R' : ''), 10, 90);
+	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 120);
 	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 150);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 180);
 
 	// Top Right
 	const playerPositionText = `Player Pos: (${displayText(player.position.x, 2, 0.01, true)},${displayText(player.position.y, 2, 0.01, true)})`;
-	const playerPositionTextMetrics = renderer.context.measureText(playerPositionText);
-	renderer.context.fillText(playerPositionText, renderer.canvas.width - playerPositionTextMetrics.width - 5, 30);
+	const playerPositionTextMetrics = renderer.context2d.measureText(playerPositionText);
+	renderer.context2d.fillText(playerPositionText, canvasSize.x - playerPositionTextMetrics.width - 5, 30);
 
 	const playerSpeedText = `Player Speed: ${displayText(player.velocity.length(), 2, 0.01, true)}, (${displayText(player.velocity.x, 2, 0.01, true)},${displayText(player.velocity.y, 2, 0.01, true)})`;
-	const playerSpeedTextMetrics = renderer.context.measureText(playerSpeedText);
-	renderer.context.fillText(playerSpeedText, renderer.canvas.width - playerSpeedTextMetrics.width - 5, 60);
+	const playerSpeedTextMetrics = renderer.context2d.measureText(playerSpeedText);
+	renderer.context2d.fillText(playerSpeedText, canvasSize.x - playerSpeedTextMetrics.width - 5, 60);
 
 	// Bottom Rignt
-	const nameVersionDisplayTextMetrics = renderer.context.measureText(nameVersionDisplay);
-	renderer.context.fillText(nameVersionDisplay, renderer.canvas.width - nameVersionDisplayTextMetrics.width - 5, renderer.canvas.height - 5);
+	const nameVersionDisplayTextMetrics = renderer.context2d.measureText(nameVersionDisplay);
+	renderer.context2d.fillText(nameVersionDisplay, canvasSize.x - nameVersionDisplayTextMetrics.width - 5, canvasSize.y - 5);
 }
 
 function infoDraw() {
-	renderer.context.fillStyle = 'rgb(255,255,255)';
-	renderer.context.font = '30px courier';
-	renderer.context.fillText(nameVersionDisplay, 10, 30);
+	renderer.context2d.fillStyle = 'rgb(255,255,255)';
+	renderer.context2d.font = '30px courier';
+	renderer.context2d.fillText(nameVersionDisplay, 10, 30);
 }
