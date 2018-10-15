@@ -1,4 +1,6 @@
 import {V3} from './Math.js';
+import vertexShaderCode from './shaders/VertexShader.js';
+import fragmentShaderCode from './shaders/fragmentShader.js';
 
 export default class Renderer {
 
@@ -10,6 +12,7 @@ export default class Renderer {
 
 		this.cameraPosition = new V3();
 		this.setSize();
+		this.initWebGL();
 	}
 
 	setSize() {
@@ -59,6 +62,43 @@ export default class Renderer {
 		this.context2d.drawImage(image, src.x, src.y, srcSize.x, srcSize.y, -dst.x, -dst.y, dstSize.x, dstSize.y);
 		// this.context.drawImage(image, 0, 32, 16, 32, -16, -48, 32, 64);
 		// this.context.drawImage(image, 0, 0, 16, 32, -8, -24, 16, 32);
+	}
+
+	// WebGL
+	initWebGL() {
+		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		const shaderProgram = this.initShaderProgram(vertexShaderCode, fragmentShaderCode);
+	}
+
+	initShaderProgram(vertexShaderSource, fragmentShaderSource) {
+		const vertexShader = this.loadShader(this.gl.VERTEX_SHADER, vertexShaderSource)
+		const fragmentShader = this.loadShader(this.gl.FRAGMENT_SHADER, fragmentShaderSource)
+		const shaderProgram = this.gl.createProgram();
+		this.gl.attachShader(shaderProgram, vertexShader);
+		this.gl.attachShader(shaderProgram, fragmentShader);
+		this.gl.linkProgram(shaderProgram);
+
+		if (this.gl.getProgramParameter(shaderProgram, this.gl.LINK_STATUS)) {
+			return shaderProgram;
+		} else {
+			alert('Shader link error: ' + this.gl.getProgramInfoLog(shaderProgram));
+			return null;
+		}
+	}
+
+	loadShader(type, source) {
+		const shader = this.gl.createShader(type);
+		this.gl.shaderSource(shader, source);
+		this.gl.compileShader(shader);
+
+		if (this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+			return shader;
+		} else {
+			alert('Shader comilation error: ' + this.gl.getShaderInfoLog(shader));
+			this.gl.deleteShader(shader);
+			return null;
+		}
 	}
 
 }

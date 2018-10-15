@@ -314,15 +314,15 @@ function loop(msElapsed) {
 }
 
 function update(dt) {
-	if (controller.debugInfoToggle != debugInfoToggleOld) {
+	if (controller.debugInfoToggle && controller.debugInfoToggle != debugInfoToggleOld) {
 		debugInfoOn = !debugInfoOn;
 	}
  	debugInfoToggleOld = controller.debugInfoToggle;
 
-	if (controller.debugInfoToggle != debugGridToggleOld) {
+	if (controller.debugGridToggle && controller.debugGridToggle != debugGridToggleOld) {
 		debugGridOn = !debugGridOn;
 	}
-	debugGridToggleOld = controller.debugInfoToggle;
+	debugGridToggleOld = controller.debugGridToggle;
 
 	let direction = new V3();
 	if (isAndroid && controller.mouse.left) {
