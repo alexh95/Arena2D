@@ -1,6 +1,6 @@
 import {V3} from './Math.js';
 import vertexShaderCode from './shaders/VertexShader.js';
-import fragmentShaderCode from './shaders/fragmentShader.js';
+import fragmentShaderCode from './shaders/FragmentShader.js';
 
 export default class Renderer {
 
