@@ -1,4 +1,4 @@
-export default class ImageStore {
+class ImageStore {
 
 	constructor() {
 		this.images = [];
@@ -22,3 +22,5 @@ export default class ImageStore {
 	}
 
 }
+
+export const imageStore = new ImageStore();

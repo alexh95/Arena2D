@@ -1,18 +1,12 @@
 import Renderer from './Renderer.js';
-import ImageStore from './ImageStore.js';
+import {imageStore} from './ImageStore.js';
 import {V3, displayText} from './Math.js';
 import {CollisionModelData, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
 import {Controller} from './Controller.js';
+import {settings} from './Settings.js';
 import {nameVersionDisplay} from './Constants.js';
 
 const renderer = new Renderer();
-const imageStore = new ImageStore();
-
-const tileSizeMeters = 1.;
-const tileSizePixels = 16;
-const metersToPixels = tileSizePixels / tileSizeMeters;
-const pixelsToMeters = tileSizeMeters / tileSizePixels;
-let zoomLevel = 4.;
 
 const controller = new Controller();
 
@@ -31,15 +25,9 @@ let barrel1 = null;
 
 let debugInfoToggleOld = false;
 let debugGridToggleOld = false;
-let debugInfoOn = true;
-let debugGridOn = false;
-
-let isAndroid = false;
 
 export default function start() {
 	console.log(nameVersionDisplay);
-
-	isAndroid = window.navigator.userAgent.toLowerCase().indexOf('android') > 0;
 
 	window.addEventListener('resize', () => renderer.setSize());
 	window.addEventListener('keydown', (event) => {
@@ -96,20 +84,21 @@ export default function start() {
 	window.addEventListener('mousewheel', (event) => {
 		// console.log(event);
 		const zoomDelta = event.deltaY / -100;
-		zoomLevel += zoomDelta;
-		if (zoomLevel < 1) {
-			zoomLevel = 1;
-		} else if (zoomLevel > 8) {
-			zoomLevel = 8;
+		renderer.zoomLevel += zoomDelta;
+		if (renderer.zoomLevel < 1) {
+			renderer.zoomLevel = 1;
+		} else if (renderer.zoomLevel > 8) {
+			renderer.zoomLevel = 8;
 		}
+		renderer.updateProjectionMatrix();
 	});
 	window.addEventListener('mousemove', (event) => {
 		// console.log(event);
 		controller.mouse.screenPosition.x = event.offsetX;
 		controller.mouse.screenPosition.y = event.offsetY;
 		const canvasSize = renderer.size;
-		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
-		controller.mouse.position = worldPosition.scale(1. / zoomLevel);
+		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(renderer.pixelsToMeters);
+		controller.mouse.position = worldPosition.scale(1. / renderer.zoomLevel);
 	});
 
 	window.addEventListener('touchmove', (event) => {
@@ -117,8 +106,8 @@ export default function start() {
 		controller.mouse.screenPosition.x = event.changedTouches[0].clientX;
 		controller.mouse.screenPosition.y = event.changedTouches[0].clientY;
 		const canvasSize = renderer.size;
-		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(pixelsToMeters);
-		controller.mouse.position = worldPosition.scale(1. / zoomLevel);
+		const worldPosition = new V3(controller.mouse.screenPosition.x, canvasSize.y - controller.mouse.screenPosition.y).subtract(canvasSize.scale(0.5)).scale(renderer.pixelsToMeters);
+		controller.mouse.position = worldPosition.scale(1. / renderer.zoomLevel);
 	});
 
 	entityTypeToImage[EntityTypes.PLAYER] = imageStore.loadImage('res/player.png');
@@ -146,7 +135,7 @@ function createEntity(type, position, center, collisionModelData, repeatedModel,
 	if (spritesheetModel) {
 		imageSize.divideEquals(spritesheetModel.size);
 	}
-	imageSize.scaleEquals(pixelsToMeters);
+	imageSize.scaleEquals(renderer.pixelsToMeters);
 	const collisionModel = collisionModelData.buildCollisionModel(imageSize);
 	return new Entity(type, position, center, collisionModel, repeatedModel, spritesheetModel);
 }
@@ -279,9 +268,10 @@ function startLoop() {
 
 		renderer.textures = [];
 		renderer.grassTileTexture = renderer.loadTexture(imageStore.images[grassTile]);
-		// renderer.boxTexture = renderer.loadTexture(imageStore.images[entityTypeToImage[EntityTypes.BOX]]);
 		entityTypeToImage.forEach((index) => renderer.textures.push(renderer.loadTexture(imageStore.images[index])));
-		buildTileMap();
+		renderer.initDraw();
+		renderer.buildTileMap();
+		renderer.initScreenDraw();
 
 		window.requestAnimationFrame(loop);
 	} else {
@@ -289,22 +279,22 @@ function startLoop() {
 	}
 }
 
-let msElapsedOld = 0;
-const msDeltas = [];
-const msDeltaMax = 30;
-let fps = 0;
+let msElapsedOld = 0.0;
+const msDeltas = new Array(30);
+let msDeltaLastIndex = 0;
 
 function loop(msElapsed) {
 	// TODO(alex): test with request frame as the last instruction
 	window.requestAnimationFrame(loop);
 
 	const msDelta = msElapsed - msElapsedOld;
-	if (msDeltas.length >= msDeltaMax) {
-		const sum = msDeltas.reduce((a, b) => a + b);
-		fps = 1000. / (sum / msDeltaMax);
-		msDeltas.length = 0;
+	if (++msDeltaLastIndex >= msDeltas.length) {
+		msDeltaLastIndex = 0;
 	}
-	msDeltas.push(msDelta);
+	msDeltas[msDeltaLastIndex] = msDelta;
+	const sum = msDeltas.reduce((a, b) => a + b);
+	settings.fps = 1000.0 * msDeltas.length / sum;
+
 	msElapsedOld = msElapsed;
 	const dt = msDelta / 1000;
 
@@ -313,25 +303,25 @@ function loop(msElapsed) {
 	// const d2 = Date.now();
 	// console.log('update', d2 - d1);
 
-	draw();
-	draw2d();
+	renderer.draw();
+	renderer.draw2d();
 	// const d3 = Date.now();
 	// console.log('draw', d3 - d2);
 }
 
 function update(dt) {
 	if (controller.debugInfoToggle && controller.debugInfoToggle != debugInfoToggleOld) {
-		debugInfoOn = !debugInfoOn;
+		settings.debugInfoOn = !settings.debugInfoOn;
 	}
  	debugInfoToggleOld = controller.debugInfoToggle;
 
 	if (controller.debugGridToggle && controller.debugGridToggle != debugGridToggleOld) {
-		debugGridOn = !debugGridOn;
+		settings.debugGridOn = !settings.debugGridOn;
 	}
 	debugGridToggleOld = controller.debugGridToggle;
 
 	let direction = new V3();
-	if (isAndroid && controller.mouse.left) {
+	if (settings.isAndroid && controller.mouse.left) {
 		const canvasSize = renderer.size;
 		const diameter = 0.4 * canvasSize.y - 16;
 		const joystickSize = new V3(diameter , diameter);
@@ -553,6 +543,51 @@ function moveEntity(dt, entity, speed, direction) {
 	}
 }
 
+function collideWall(x, y, dx, dy, wx, wy1, wy2) {
+	let hit = false;
+	let t = 1.;
+	const epsilon = 0.0001;
+
+	if (dx !== 0.) {
+		const nt = (wx - x) / dx;
+		const ny = y + t * dy;
+		if ((nt > 0.) && (nt < t) && (((y >= wy1) && (y <= wy2)) || ((ny >= wy1) && (ny <= wy2)))) {
+			hit = true;
+			t = Math.max(0., nt - epsilon);
+		}
+	}
+
+	return {hit, t};
+}
+
+function collideCircle(rp, dp, r) {
+	let hit = false;
+	let t = 1.;
+	let wn = new V3();
+	const epsilon = 0.0001;
+
+	const dpSqared = dp.inner(dp);
+	const reverseInnerDifference = rp.x * dp.y - rp.y * dp.x;
+	const deltaSquared = r * r * dpSqared - reverseInnerDifference * reverseInnerDifference;
+	if (deltaSquared >= 0) {
+		const inner = rp.inner(dp);
+		const delta = Math.sqrt(deltaSquared);
+		const tCandidate1 = (-inner + delta) / dpSqared;
+		const tFinalCandidate1 = (tCandidate1 > 0) ? tCandidate1 : t;
+		const tCandidate2 = (-inner - delta) / dpSqared;
+		const tFinalCandidate2 = (tCandidate2 > 0) ? tCandidate2 : t;
+		const tFinal = Math.min(tFinalCandidate1, tFinalCandidate2);
+		if (t > tFinal) {
+			hit = true;
+			t = Math.max(0., tFinal - epsilon);
+			// wn = rp.add(dp.scale(t)).normalize();
+			wn = rp.normalize();
+		}
+	}
+
+	return {hit, t, wn};
+}
+
 function intersects(e1, np, e2) {
 	if (e1 != e2 && e1.collides && e2.collides) {
 		const rp = np.subtract(e2.position);
@@ -618,387 +653,4 @@ function intersects(e1, np, e2) {
 		
 	}
 	return false;
-}
-
-function collideWall(x, y, dx, dy, wx, wy1, wy2) {
-	let hit = false;
-	let t = 1.;
-	const epsilon = 0.0001;
-
-	if (dx !== 0.) {
-		const nt = (wx - x) / dx;
-		const ny = y + t * dy;
-		if ((nt > 0.) && (nt < t) && (((y >= wy1) && (y <= wy2)) || ((ny >= wy1) && (ny <= wy2)))) {
-			hit = true;
-			t = Math.max(0., nt - epsilon);
-		}
-	}
-
-	return {hit, t};
-}
-
-function collideCircle(rp, dp, r) {
-	let hit = false;
-	let t = 1.;
-	let wn = new V3();
-	const epsilon = 0.0001;
-
-	const dpSqared = dp.inner(dp);
-	const reverseInnerDifference = rp.x * dp.y - rp.y * dp.x;
-	const deltaSquared = r * r * dpSqared - reverseInnerDifference * reverseInnerDifference;
-	if (deltaSquared >= 0) {
-		const inner = rp.inner(dp);
-		const delta = Math.sqrt(deltaSquared);
-		const tCandidate1 = (-inner + delta) / dpSqared;
-		const tFinalCandidate1 = (tCandidate1 > 0) ? tCandidate1 : t;
-		const tCandidate2 = (-inner - delta) / dpSqared;
-		const tFinalCandidate2 = (tCandidate2 > 0) ? tCandidate2 : t;
-		const tFinal = Math.min(tFinalCandidate1, tFinalCandidate2);
-		if (t > tFinal) {
-			hit = true;
-			t = Math.max(0., tFinal - epsilon);
-			// wn = rp.add(dp.scale(t)).normalize();
-			wn = rp.normalize();
-		}
-	}
-
-	return {hit, t, wn};
-}
-
-function buildTileMap() {
-	renderer.tileMapTexture = renderer.gl.createTexture();
-	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.tileMapTexture);
-	const level = 0;
-	const internalFormat = renderer.gl.RGBA;
-	const width = 64 * metersToPixels;
-	const height = 64 * metersToPixels;
-	const border = 0;
-	const format = renderer.gl.RGBA;
-	const type = renderer.gl.UNSIGNED_BYTE;
-	const pixels = null;
-	renderer.gl.texImage2D(renderer.gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, pixels);
-	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_MIN_FILTER, renderer.gl.NEAREST);
-	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_MAG_FILTER, renderer.gl.NEAREST);
-	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_WRAP_S, renderer.gl.CLAMP_TO_EDGE);
-	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_WRAP_T, renderer.gl.CLAMP_TO_EDGE);
-
-	const tileMapFrameBuffer = renderer.gl.createFramebuffer();
-	renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER, tileMapFrameBuffer);
-	renderer.gl.framebufferTexture2D(renderer.gl.FRAMEBUFFER, renderer.gl.COLOR_ATTACHMENT0, 
-		renderer.gl.TEXTURE_2D, renderer.tileMapTexture, level);
-
-	renderer.gl.viewport(0, 0, width, height);
-
-	renderer.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-	renderer.gl.clearDepth(1.0);
-	renderer.gl.enable(renderer.gl.DEPTH_TEST);
-	renderer.gl.depthFunc(renderer.gl.LEQUAL);
-	renderer.gl.clear(renderer.gl.COLOR_BUFFER_BIT | renderer.gl.DEPTH_BUFFER_BIT);
-
-	const projectionMatrix = mat4.create();
-	{
-		const left = -0.5 * width * pixelsToMeters;
-		const right = 0.5 * width * pixelsToMeters;
-		const bottom = -0.5 * height * pixelsToMeters;
-		const top = 0.5 * height * pixelsToMeters;
-		const near = -0.5 * height * pixelsToMeters;
-		const far = 0.5 * height * pixelsToMeters;
-		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
-	}
-
-	let textureCoordinateMatrix = mat4.create();
-	
-	const cameraPosition = renderer.cameraPosition;
-
-	{
-		const target = renderer.gl.ARRAY_BUFFER;
-		const buffer = renderer.buffers.vertexPositionBuffer;
-		const index = renderer.programInfo.attribLocations.vertexPosition;
-		const size = 2;
-		const type = renderer.gl.FLOAT;
-		const normalized = false;
-		const stride = 0;
-		const offset = 0;
-		renderer.gl.bindBuffer(target, buffer);
-		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-		renderer.gl.enableVertexAttribArray(index);
-	}
-
-	{
-		const target = renderer.gl.ARRAY_BUFFER;
-		const buffer = renderer.buffers.textureCooridantesBuffer;
-		const index = renderer.programInfo.attribLocations.textureCoordinate;
-		const size = 2;
-		const type = renderer.gl.FLOAT;
-		const normalized = false;
-		const stride = 0;
-		const offset = 0;
-		renderer.gl.bindBuffer(target, buffer);
-		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-		renderer.gl.enableVertexAttribArray(index);
-	}
-
-	renderer.gl.useProgram(renderer.programInfo.shaderProgram);
-
-	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-
-	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
-	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.grassTileTexture);
-
-	renderer.gl.uniform1i(renderer.programInfo.uniformLocations.sampler, 0);
-
-	const mode = renderer.gl.TRIANGLE_STRIP;
-	const first = 0;
-	const count = 4;
-	for (let yTile = -32; yTile < 32; ++yTile) {
-		for (let xTile = -32; xTile < 32; ++xTile) {
-			const modelViewMatrix = mat4.create();
-			mat4.translate(modelViewMatrix, modelViewMatrix, [xTile - cameraPosition.x + 0.5, yTile - cameraPosition.y + 0.5, 0.0]);
-			mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * 16 * pixelsToMeters, 0.5 * 16 * pixelsToMeters, 1.0]);
-			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-			renderer.gl.drawArrays(mode, first, count);
-		}
-	}
-}
-
-function draw() {
-	renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER, null);
-	renderer.gl.viewport(0, 0, renderer.gl.canvas.width, renderer.gl.canvas.height);
-
-	renderer.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-	renderer.gl.clearDepth(1.0);
-	renderer.gl.enable(renderer.gl.DEPTH_TEST);
-	renderer.gl.depthFunc(renderer.gl.LEQUAL);
-	renderer.gl.clear(renderer.gl.COLOR_BUFFER_BIT | renderer.gl.DEPTH_BUFFER_BIT);
-
-	const canvasSize = renderer.size;
-	const viewportSize = canvasSize.scale(pixelsToMeters / zoomLevel);
-	const projectionMatrix = mat4.create();
-	{
-		const left = -0.5 * viewportSize.x;
-		const right = 0.5 * viewportSize.x;
-		const bottom = -0.5 * viewportSize.y;
-		const top = 0.5 * viewportSize.y;
-		const near = -0.5 * canvasSize.y;
-		const far = 0.5 * canvasSize.y;
-		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
-	}
-	
-	let modelViewMatrix = mat4.create();
-	const cameraPosition = renderer.cameraPosition;
-	mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, -0.5 * canvasSize.y]);
-	mat4.scale(modelViewMatrix, modelViewMatrix, [64 * 0.5 * 16 * pixelsToMeters, 64 * 0.5 * 16 * pixelsToMeters, 1.0]);
-
-	let textureCoordinateMatrix = mat4.create();
-
-	{
-		const target = renderer.gl.ARRAY_BUFFER;
-		const buffer = renderer.buffers.vertexPositionBuffer;
-		const index = renderer.programInfo.attribLocations.vertexPosition;
-		const size = 2;
-		const type = renderer.gl.FLOAT;
-		const normalized = false;
-		const stride = 0;
-		const offset = 0;
-		renderer.gl.bindBuffer(target, buffer);
-		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-		renderer.gl.enableVertexAttribArray(index);
-	}
-
-	{
-		const target = renderer.gl.ARRAY_BUFFER;
-		const buffer = renderer.buffers.textureCooridantesBuffer;
-		const index = renderer.programInfo.attribLocations.textureCoordinate;
-		const size = 2;
-		const type = renderer.gl.FLOAT;
-		const normalized = false;
-		const stride = 0;
-		const offset = 0;
-		renderer.gl.bindBuffer(target, buffer);
-		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-		renderer.gl.enableVertexAttribArray(index);
-	}
-
-	renderer.gl.useProgram(renderer.programInfo.shaderProgram);
-
-	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-
-	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
-	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.tileMapTexture);
-
-	renderer.gl.uniform1i(renderer.programInfo.uniformLocations.sampler, 0);
-
-	{
-		const mode = renderer.gl.TRIANGLE_STRIP;
-		const first = 0;
-		const count = 4;
-		renderer.gl.drawArrays(mode, first, count);
-	}
-
-	entities.forEach((entity) => {
-		renderer.gl.activeTexture(renderer.gl.TEXTURE0);
-		const texture = renderer.textures[entityTypeToImage[entity.type]];
-		renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, texture);
-
-		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const imageSize = new V3(image.width, image.height);
-		
-		if (entity.spritesheetModel) {
-			const size = imageSize.scale(pixelsToMeters).divide(entity.spritesheetModel.size);
-			const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
-			const positionOffset = entity.position.subtract(renderer.cameraPosition);
-			const offset = positionOffset.add(centerOffset);
-
-			modelViewMatrix = mat4.create();
-			mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
-			mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-
-			textureCoordinateMatrix = mat4.create();
-			const textureOffset = entity.spritesheetModel.index.divide(entity.spritesheetModel.size);
-			mat4.translate(textureCoordinateMatrix, textureCoordinateMatrix, [textureOffset.x, textureOffset.y, 0.0]);
-			mat4.scale(textureCoordinateMatrix, textureCoordinateMatrix, [1.0 / entity.spritesheetModel.size.x, 1.0 / entity.spritesheetModel.size.y, 1.0]);
-			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-	
-			const mode = renderer.gl.TRIANGLE_STRIP;
-			const first = 0;
-			const count = 4;
-			renderer.gl.drawArrays(mode, first, count);
-		} else {
-			const size = imageSize.scale(pixelsToMeters);
-			const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
-			const positionOffset = entity.position.subtract(renderer.cameraPosition);
-			
-			textureCoordinateMatrix = mat4.create();
-			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-
-			if (entity.repeatedModel) {
-				for (let repeatedIndex = 0; repeatedIndex < entity.repeatedModel.count; ++repeatedIndex) {
-					const repeatedOffset = size.multiply(entity.repeatedModel.sizeScale).multiply(entity.repeatedModel.direction).scale(repeatedIndex);
-					const offset = positionOffset.add(centerOffset).add(repeatedOffset);
-	
-					modelViewMatrix = mat4.create();
-					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
-					mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-					renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-			
-					const mode = renderer.gl.TRIANGLE_STRIP;
-					const first = 0;
-					const count = 4;
-					renderer.gl.drawArrays(mode, first, count);
-				}
-			} else {
-				const offset = positionOffset.add(centerOffset);
-
-				modelViewMatrix = mat4.create();
-				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
-				mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-				renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-		
-				const mode = renderer.gl.TRIANGLE_STRIP;
-				const first = 0;
-				const count = 4;
-				renderer.gl.drawArrays(mode, first, count);
-			}
-		}
-	});
-}
-
-function draw2d() {
-	renderer.clear();
-	renderer.save();
-
-	if (isAndroid) {
-		renderer.save();
-		const canvasSize = renderer.size;
-		const diameter = 0.4 * canvasSize.y - 16;
-		const joystickSize = new V3(diameter, diameter);
-		const joystickOffset = new V3(-16., joystickSize.y - canvasSize.y + 16.);
-		const baseImage = imageStore.images[joystickBaseIndex];
-		renderer.drawImage(baseImage, joystickOffset, joystickSize);
-		const stickImage = imageStore.images[joystickStickIndex];
-		const stickDirectionOffset = joystick.direction.scale(0.5 * diameter);
-		stickDirectionOffset.x = -stickDirectionOffset.x;
-		const stickOffset = joystickOffset.add(stickDirectionOffset);
-		renderer.drawImage(stickImage, stickOffset, joystickSize);
-		renderer.restore();
-	}
-
-	if (debugInfoOn) {
-		debugDraw();
-	} else {
-		infoDraw();
-	}
-}
-
-function debugDraw() {
-	renderer.context2d.lineWidth = '1';
-	renderer.context2d.strokeStyle = 'rgb(255,0,0)';
-	renderer.context2d.fillStyle = 'rgb(255,0,0)';
-	renderer.context2d.font = '30px courier';
-
-	const canvasSize = renderer.size;
-	if (debugGridOn) {
-		renderer.save();
-		renderer.context2d.fillStyle = 'rgb(255,255,0)';
-		renderer.context2d.globalAlpha = 0.5;
-		const cameraOffset = renderer.cameraPosition.scale(metersToPixels);
-		for (let y = -32; y < 32; ++y) {
-			for (let x = -32; x < 32; ++x) {
-				if ((y + x) % 2 === 0) {
-					renderer.context2d.fillRect(
-						0.5 * (canvasSize.x) + zoomLevel * (x * metersToPixels - cameraOffset.x), 
-						0.5 * (canvasSize.y) - zoomLevel * (y * metersToPixels - cameraOffset.y), 
-						tileSizePixels * zoomLevel, 
-						tileSizePixels * zoomLevel);
-				}
-			}
-		}
-		renderer.restore();
-	}
-
-
-	renderer.context2d.strokeRect(0.5, 0.5, canvasSize.x - 1, canvasSize.y - 1);
-
-	// Center
-	const center = new V3(0.5 * canvasSize.x + (canvasSize.x % 2 == 0 ? 0.5 : 0),
-						  0.5 * canvasSize.y + (canvasSize.y % 2 == 0 ? 0.5 : 0));
-	const crossWidth = canvasSize.x % 2 == 0 ? 1 : 0;
-	const crossHeight = canvasSize.y % 2 == 0 ? 1 : 0;
-	renderer.context2d.strokeRect(center.x - crossWidth, center.y - 32, crossWidth, 64 - crossHeight);
-	renderer.context2d.strokeRect(center.x - 32, center.y - crossHeight, 64 - crossWidth, crossHeight);
-	renderer.context2d.fillText('X', center.x + 32, center.y + 8);
-	renderer.context2d.fillText('-X', center.x - 70, center.y + 8);
-	renderer.context2d.fillText('Y', center.x - 10, center.y - 40);
-	renderer.context2d.fillText('-Y', center.x - 27, center.y + 56);
-
-	// Top Left
-	renderer.context2d.fillText('Resolution: ' + canvasSize.x + ' x ' + canvasSize.y, 10, 30);
-	renderer.context2d.fillText('FPS: ' + fps.toString().substring(0, fps.toString().indexOf('.')), 10, 60);
-	const mouseWorldPosition = controller.mouse.position.add(player.position);
-	renderer.context2d.fillText(`Mouse: (${displayText(mouseWorldPosition.x, 2, 0.01, true)}, ${displayText(mouseWorldPosition.y, 2, 0.01, true)})` + (controller.mouse.left ? ' L' : '') + (controller.mouse.middle ? ' M' : '') + (controller.mouse.right ? ' R' : ''), 10, 90);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 120);
-	// renderer.context.fillText('the quick brown fox jumps over the lazy dog', 10, 150);
-
-	// Top Right
-	const playerPositionText = `Player Pos: (${displayText(player.position.x, 2, 0.01, true)},${displayText(player.position.y, 2, 0.01, true)})`;
-	const playerPositionTextMetrics = renderer.context2d.measureText(playerPositionText);
-	renderer.context2d.fillText(playerPositionText, canvasSize.x - playerPositionTextMetrics.width - 5, 30);
-
-	const playerSpeedText = `Player Speed: ${displayText(player.velocity.length(), 2, 0.01, true)}, (${displayText(player.velocity.x, 2, 0.01, true)},${displayText(player.velocity.y, 2, 0.01, true)})`;
-	const playerSpeedTextMetrics = renderer.context2d.measureText(playerSpeedText);
-	renderer.context2d.fillText(playerSpeedText, canvasSize.x - playerSpeedTextMetrics.width - 5, 60);
-
-	// Bottom Rignt
-	const nameVersionDisplayTextMetrics = renderer.context2d.measureText(nameVersionDisplay);
-	renderer.context2d.fillText(nameVersionDisplay, canvasSize.x - nameVersionDisplayTextMetrics.width - 5, canvasSize.y - 5);
-}
-
-function infoDraw() {
-	renderer.context2d.fillStyle = 'rgb(255,255,255)';
-	renderer.context2d.font = '30px courier';
-	renderer.context2d.fillText(nameVersionDisplay, 10, 30);
 }
