@@ -701,8 +701,8 @@ function buildTileMap() {
 		const right = 0.5 * width * pixelsToMeters;
 		const bottom = -0.5 * height * pixelsToMeters;
 		const top = 0.5 * height * pixelsToMeters;
-		const near = -1.0;
-		const far = 1.0;
+		const near = -0.5 * height * pixelsToMeters;
+		const far = 0.5 * height * pixelsToMeters;
 		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
 	}
 
@@ -772,21 +772,22 @@ function draw() {
 	renderer.gl.depthFunc(renderer.gl.LEQUAL);
 	renderer.gl.clear(renderer.gl.COLOR_BUFFER_BIT | renderer.gl.DEPTH_BUFFER_BIT);
 
-	const viewportSize = renderer.size.scale(pixelsToMeters / zoomLevel);
+	const canvasSize = renderer.size;
+	const viewportSize = canvasSize.scale(pixelsToMeters / zoomLevel);
 	const projectionMatrix = mat4.create();
 	{
 		const left = -0.5 * viewportSize.x;
 		const right = 0.5 * viewportSize.x;
 		const bottom = -0.5 * viewportSize.y;
 		const top = 0.5 * viewportSize.y;
-		const near = -0.5 * viewportSize.y;
-		const far = 0.5 * viewportSize.y;
+		const near = -0.5 * canvasSize.y;
+		const far = 0.5 * canvasSize.y;
 		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
 	}
 	
 	let modelViewMatrix = mat4.create();
 	const cameraPosition = renderer.cameraPosition;
-	mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, 0.0]);
+	mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, -0.5 * canvasSize.y]);
 	mat4.scale(modelViewMatrix, modelViewMatrix, [64 * 0.5 * 16 * pixelsToMeters, 64 * 0.5 * 16 * pixelsToMeters, 1.0]);
 
 	let textureCoordinateMatrix = mat4.create();
@@ -852,7 +853,7 @@ function draw() {
 			const offset = positionOffset.add(centerOffset);
 
 			modelViewMatrix = mat4.create();
-			mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+			mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 			mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 
@@ -880,7 +881,7 @@ function draw() {
 					const offset = positionOffset.add(centerOffset).add(repeatedOffset);
 	
 					modelViewMatrix = mat4.create();
-					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 					mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 					renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 			
@@ -893,7 +894,7 @@ function draw() {
 				const offset = positionOffset.add(centerOffset);
 
 				modelViewMatrix = mat4.create();
-				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 				mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 				renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 		
