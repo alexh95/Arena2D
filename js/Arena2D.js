@@ -12,7 +12,7 @@ const tileSizeMeters = 1.;
 const tileSizePixels = 16;
 const metersToPixels = tileSizePixels / tileSizeMeters;
 const pixelsToMeters = tileSizeMeters / tileSizePixels;
-let zoomLevel = 1.;
+let zoomLevel = 4.;
 
 const controller = new Controller();
 
@@ -20,11 +20,10 @@ const joystick = {
 	direction: new V3()
 };
 
-const grassTileFrom = new V3(-32, -32);
-const grassTileTo = new V3(31, 31);
-let grassTile = null;
 let joystickBaseIndex = null;
 let joystickStickIndex = null;
+
+let grassTile = null;
 
 let player = null;
 let box1 = null;
@@ -278,6 +277,10 @@ function startLoop() {
 		entities.push(box1);
 		entities.push(barrel1);
 
+		renderer.textures = [];
+		renderer.grassTileTexture = renderer.loadTexture(imageStore.images[grassTile]);
+		// renderer.boxTexture = renderer.loadTexture(imageStore.images[entityTypeToImage[EntityTypes.BOX]]);
+		entityTypeToImage.forEach((index) => renderer.textures.push(renderer.loadTexture(imageStore.images[index])));
 		buildTileMap();
 
 		window.requestAnimationFrame(loop);
@@ -702,6 +705,8 @@ function buildTileMap() {
 		const far = 1.0;
 		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
 	}
+
+	let textureCoordinateMatrix = mat4.create();
 	
 	const cameraPosition = renderer.cameraPosition;
 
@@ -736,6 +741,7 @@ function buildTileMap() {
 	renderer.gl.useProgram(renderer.programInfo.shaderProgram);
 
 	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 
 	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
 	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.grassTileTexture);
@@ -773,15 +779,17 @@ function draw() {
 		const right = 0.5 * viewportSize.x;
 		const bottom = -0.5 * viewportSize.y;
 		const top = 0.5 * viewportSize.y;
-		const near = -1.0;
-		const far = 1.0;
+		const near = -0.5 * viewportSize.y;
+		const far = 0.5 * viewportSize.y;
 		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
 	}
 	
-	const modelViewMatrix = mat4.create();
+	let modelViewMatrix = mat4.create();
 	const cameraPosition = renderer.cameraPosition;
 	mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, 0.0]);
 	mat4.scale(modelViewMatrix, modelViewMatrix, [64 * 0.5 * 16 * pixelsToMeters, 64 * 0.5 * 16 * pixelsToMeters, 1.0]);
+
+	let textureCoordinateMatrix = mat4.create();
 
 	{
 		const target = renderer.gl.ARRAY_BUFFER;
@@ -815,6 +823,7 @@ function draw() {
 
 	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
 	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 
 	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
 	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.tileMapTexture);
@@ -827,48 +836,83 @@ function draw() {
 		const count = 4;
 		renderer.gl.drawArrays(mode, first, count);
 	}
+
+	entities.forEach((entity) => {
+		renderer.gl.activeTexture(renderer.gl.TEXTURE0);
+		const texture = renderer.textures[entityTypeToImage[entity.type]];
+		renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, texture);
+
+		const image = imageStore.images[entityTypeToImage[entity.type]];
+		const imageSize = new V3(image.width, image.height);
+		
+		if (entity.spritesheetModel) {
+			const size = imageSize.scale(pixelsToMeters).divide(entity.spritesheetModel.size);
+			const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
+			const positionOffset = entity.position.subtract(renderer.cameraPosition);
+			const offset = positionOffset.add(centerOffset);
+
+			modelViewMatrix = mat4.create();
+			mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+			mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
+			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+			textureCoordinateMatrix = mat4.create();
+			const textureOffset = entity.spritesheetModel.index.divide(entity.spritesheetModel.size);
+			mat4.translate(textureCoordinateMatrix, textureCoordinateMatrix, [textureOffset.x, textureOffset.y, 0.0]);
+			mat4.scale(textureCoordinateMatrix, textureCoordinateMatrix, [1.0 / entity.spritesheetModel.size.x, 1.0 / entity.spritesheetModel.size.y, 1.0]);
+			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+	
+			const mode = renderer.gl.TRIANGLE_STRIP;
+			const first = 0;
+			const count = 4;
+			renderer.gl.drawArrays(mode, first, count);
+		} else {
+			const size = imageSize.scale(pixelsToMeters);
+			const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
+			const positionOffset = entity.position.subtract(renderer.cameraPosition);
+			
+			textureCoordinateMatrix = mat4.create();
+			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+
+			if (entity.repeatedModel) {
+				for (let repeatedIndex = 0; repeatedIndex < entity.repeatedModel.count; ++repeatedIndex) {
+					const repeatedOffset = size.multiply(entity.repeatedModel.sizeScale).multiply(entity.repeatedModel.direction).scale(repeatedIndex);
+					const offset = positionOffset.add(centerOffset).add(repeatedOffset);
+	
+					modelViewMatrix = mat4.create();
+					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+					mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
+					renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+			
+					const mode = renderer.gl.TRIANGLE_STRIP;
+					const first = 0;
+					const count = 4;
+					renderer.gl.drawArrays(mode, first, count);
+				}
+			} else {
+				const offset = positionOffset.add(centerOffset);
+
+				modelViewMatrix = mat4.create();
+				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, 0.1]);
+				mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
+				renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+		
+				const mode = renderer.gl.TRIANGLE_STRIP;
+				const first = 0;
+				const count = 4;
+				renderer.gl.drawArrays(mode, first, count);
+			}
+		}
+	});
 }
 
 function draw2d() {
 	renderer.clear();
 	renderer.save();
 
-	const cameraPositionDelta = renderer.cameraPosition.scale(metersToPixels * zoomLevel).multiply(new V3(-1., 1.));
-	const canvasSize = renderer.size;
-	const screenOffset = canvasSize.scale(0.5);
-	renderer.translate(cameraPositionDelta.add(screenOffset));
-
-	entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
-
-	entities.forEach((entity) => { 
-		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.)).scale(zoomLevel);
-		const image = imageStore.images[entityTypeToImage[entity.type]];
-		const imageSize = new V3(image.width, image.height);
-		if (entity.spritesheetModel) {
-			const srcSize = imageSize.divide(entity.spritesheetModel.size);
-			const dstSize = srcSize.scale(zoomLevel);
-			const entityCenterDelta = dstSize.subtract(dstSize.multiply(entity.center)).subtract(entityPositionDelta);
-			renderer.drawSprite(image, srcSize.multiply(entity.spritesheetModel.index), srcSize, entityCenterDelta, dstSize);
-		} else {
-			const size = imageSize.scale(zoomLevel);
-			const offset = size.subtract(size.multiply(entity.center)).subtract(entityPositionDelta);
-
-			if (entity.repeatedModel) {
-				const repeatedOffset = size.multiply(entity.repeatedModel.sizeScale).multiply(entity.repeatedModel.direction).multiply(new V3(-1., 1.));
-				for (let repeatedIndex = 0; repeatedIndex < entity.repeatedModel.count; ++repeatedIndex) {
-					const entityOffset = offset.add(repeatedOffset.scale(repeatedIndex));
-					renderer.drawImage(image, entityOffset, size);
-				}
-			} else {
-				renderer.drawImage(image, offset, size);
-			}
-		}
-		
-	});
-	renderer.restore();
-
 	if (isAndroid) {
 		renderer.save();
+		const canvasSize = renderer.size;
 		const diameter = 0.4 * canvasSize.y - 16;
 		const joystickSize = new V3(diameter, diameter);
 		const joystickOffset = new V3(-16., joystickSize.y - canvasSize.y + 16.);
@@ -901,8 +945,8 @@ function debugDraw() {
 		renderer.context2d.fillStyle = 'rgb(255,255,0)';
 		renderer.context2d.globalAlpha = 0.5;
 		const cameraOffset = renderer.cameraPosition.scale(metersToPixels);
-		for (let y = -32; y <= 31; ++y) {
-			for (let x = -32; x <= 31; ++x) {
+		for (let y = -32; y < 32; ++y) {
+			for (let x = -32; x < 32; ++x) {
 				if ((y + x) % 2 === 0) {
 					renderer.context2d.fillRect(
 						0.5 * (canvasSize.x) + zoomLevel * (x * metersToPixels - cameraOffset.x), 

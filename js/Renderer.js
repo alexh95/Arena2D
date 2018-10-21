@@ -75,6 +75,7 @@ export default class Renderer {
 			uniformLocations: {
 				projectionMatrix: this.gl.getUniformLocation(shaderProgram, 'projectionMatrix'),
 				modelViewMatrix: this.gl.getUniformLocation(shaderProgram, 'modelViewMatrix'),
+				textureCoordinateMatrix: this.gl.getUniformLocation(shaderProgram, 'textureCoordinateMatrix'),
 				sampler: this.gl.getUniformLocation(shaderProgram, 'sampler'),
 			}
 		}
@@ -103,8 +104,6 @@ export default class Renderer {
 			vertexPositionBuffer,
 			textureCooridantesBuffer
 		}
-
-		this.grassTileTexture = this.loadTexture('res/grass_tile.png');
 	}
 
 	initShaderProgram(vertexShaderSource, fragmentShaderSource) {
@@ -137,36 +136,22 @@ export default class Renderer {
 		}
 	}
 
-	loadTexture(url) {
+	loadTexture(image) {
 		const texture = this.gl.createTexture();
 		const target = this.gl.TEXTURE_2D;
 		const level = 0;
 		const internalFormat = this.gl.RGBA;
-		const width = 1;
-		const height = 1;
-		const border = 0;
 		const format = this.gl.RGBA;
 		const type = this.gl.UNSIGNED_BYTE;
-		const pixels = new Uint8Array([0, 0, 255, 255]);
 		this.gl.bindTexture(target, texture);
-		this.gl.texImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
-	
-		const image = new Image();
-		image.onload = () => {
-			this.gl.bindTexture(target, texture);
-			this.gl.texImage2D(target, level, internalFormat, format, type, image);
-	
-			if (this.isPowerOf2(image.width) && this.isPowerOf2(image.height)) {
-				this.gl.generateMipmap(target);
-			} 
-
-			this.gl.texParameteri(target, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST_MIPMAP_NEAREST);
-			this.gl.texParameteri(target, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-			this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-			this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-		};
-		image.src = url;
-	
+		this.gl.texImage2D(target, level, internalFormat, format, type, image);
+		if (this.isPowerOf2(image.width) && this.isPowerOf2(image.height)) {
+			this.gl.generateMipmap(target);
+		} 
+		this.gl.texParameteri(target, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST_MIPMAP_NEAREST);
+		this.gl.texParameteri(target, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+		this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+		this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
 		return texture;
 	}
 	
