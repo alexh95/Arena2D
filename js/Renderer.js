@@ -5,10 +5,8 @@ import fragmentShaderCode from './shaders/FragmentShader.js';
 export default class Renderer {
 
 	constructor() {
-		this.canvas2d = document.getElementById('canvas-2d');
-		this.context2d = this.canvas2d.getContext('2d');
-		this.canvasGl = document.getElementById('canvas-webgl');
-		this.gl = this.canvasGl.getContext('webgl');
+		this.context2d = document.getElementById('canvas-2d').getContext('2d');
+		this.gl = document.getElementById('canvas-webgl').getContext('webgl');
 
 		this.cameraPosition = new V3();
 		this.setSize();
@@ -16,15 +14,16 @@ export default class Renderer {
 	}
 
 	setSize() {
-		this.canvas2d.width = window.innerWidth;
-		this.canvas2d.height = window.innerHeight;
+		this.context2d.canvas.width = window.innerWidth;
+		this.context2d.canvas.height = window.innerHeight;
 		this.context2d.imageSmoothingEnabled = false;
-		this.canvasGl.width = window.innerWidth;
-		this.canvasGl.height = window.innerHeight;
+		this.gl.canvas.width = window.innerWidth;
+		this.gl.canvas.height = window.innerHeight;
+		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 	}
 
 	get size() {
-		const result = new V3(this.canvas2d.width, this.canvas2d.height);
+		const result = new V3(this.gl.canvas.width, this.gl.canvas.height);
 		return result;
 	}
 
@@ -37,7 +36,7 @@ export default class Renderer {
 	}
 
 	clear() {
-		this.context2d.clearRect(0, 0, this.canvas2d.width, this.canvas2d.height);
+		this.context2d.clearRect(0, 0, this.context2d.canvas.width, this.context2d.canvas.height);
 	}
 
 	translate(position) {
@@ -60,8 +59,6 @@ export default class Renderer {
 
 	drawSprite(image, src, srcSize, dst, dstSize) {
 		this.context2d.drawImage(image, src.x, src.y, srcSize.x, srcSize.y, -dst.x, -dst.y, dstSize.x, dstSize.y);
-		// this.context.drawImage(image, 0, 32, 16, 32, -16, -48, 32, 64);
-		// this.context.drawImage(image, 0, 0, 16, 32, -8, -24, 16, 32);
 	}
 
 	// WebGL
@@ -69,6 +66,45 @@ export default class Renderer {
 		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 		const shaderProgram = this.initShaderProgram(vertexShaderCode, fragmentShaderCode);
+		this.programInfo = {
+			shaderProgram,
+			attribLocations: {
+				vertexPosition: this.gl.getAttribLocation(shaderProgram, 'vertexPosition'),
+				textureCoordinate: this.gl.getAttribLocation(shaderProgram, 'textureCoordinate')
+			},
+			uniformLocations: {
+				projectionMatrix: this.gl.getUniformLocation(shaderProgram, 'projectionMatrix'),
+				modelViewMatrix: this.gl.getUniformLocation(shaderProgram, 'modelViewMatrix'),
+				sampler: this.gl.getUniformLocation(shaderProgram, 'sampler'),
+			}
+		}
+
+		const vertexPositionBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vertexPositionBuffer);
+		const vertexPositionData = new Float32Array([
+			-1.0,  1.0,
+			1.0,  1.0,
+			-1.0, -1.0,
+			1.0, -1.0
+		]);
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, vertexPositionData, this.gl.STATIC_DRAW);
+
+		const textureCooridantesBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, textureCooridantesBuffer);
+		const textureCooridantesData = new Float32Array([
+			0.0, 0.0,
+			1.0, 0.0,
+			0.0, 1.0,
+			1.0, 1.0
+		]);
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, textureCooridantesData, this.gl.STATIC_DRAW);
+
+		this.buffers = {
+			vertexPositionBuffer,
+			textureCooridantesBuffer
+		}
+
+		this.grassTileTexture = this.loadTexture('res/grass_tile.png');
 	}
 
 	initShaderProgram(vertexShaderSource, fragmentShaderSource) {
@@ -99,6 +135,43 @@ export default class Renderer {
 			this.gl.deleteShader(shader);
 			return null;
 		}
+	}
+
+	loadTexture(url) {
+		const texture = this.gl.createTexture();
+		const target = this.gl.TEXTURE_2D;
+		const level = 0;
+		const internalFormat = this.gl.RGBA;
+		const width = 1;
+		const height = 1;
+		const border = 0;
+		const format = this.gl.RGBA;
+		const type = this.gl.UNSIGNED_BYTE;
+		const pixels = new Uint8Array([0, 0, 255, 255]);
+		this.gl.bindTexture(target, texture);
+		this.gl.texImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
+	
+		const image = new Image();
+		image.onload = () => {
+			this.gl.bindTexture(target, texture);
+			this.gl.texImage2D(target, level, internalFormat, format, type, image);
+	
+			if (this.isPowerOf2(image.width) && this.isPowerOf2(image.height)) {
+				this.gl.generateMipmap(target);
+			} 
+
+			this.gl.texParameteri(target, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST_MIPMAP_NEAREST);
+			this.gl.texParameteri(target, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+			this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+			this.gl.texParameteri(target, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+		};
+		image.src = url;
+	
+		return texture;
+	}
+	
+	isPowerOf2(value) {
+		return (value & (value - 1)) == 0;
 	}
 
 }

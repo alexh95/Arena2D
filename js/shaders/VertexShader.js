@@ -1,15 +1,15 @@
 const vertexShaderCode =`
-attribute vec4 aVertexPosition;
-attribute vec2 aTextureCoord;
+attribute vec4 vertexPosition;
+attribute vec2 textureCoordinate;
 
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
 
-varying highp vec2 vTextureCoord;
+varying highp vec2 textureCoordinateFragment;
 
 void main() {
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    vTextureCoord = aTextureCoord;
+    gl_Position = projectionMatrix * modelViewMatrix * vertexPosition;
+    textureCoordinateFragment = textureCoordinate;
 }
 `;
 export default vertexShaderCode;

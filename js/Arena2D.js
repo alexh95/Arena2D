@@ -278,6 +278,8 @@ function startLoop() {
 		entities.push(box1);
 		entities.push(barrel1);
 
+		buildTileMap();
+
 		window.requestAnimationFrame(loop);
 	} else {
 		window.requestAnimationFrame(startLoop);
@@ -309,6 +311,7 @@ function loop(msElapsed) {
 	// console.log('update', d2 - d1);
 
 	draw();
+	draw2d();
 	// const d3 = Date.now();
 	// console.log('draw', d3 - d2);
 }
@@ -659,7 +662,174 @@ function collideCircle(rp, dp, r) {
 	return {hit, t, wn};
 }
 
+function buildTileMap() {
+	renderer.tileMapTexture = renderer.gl.createTexture();
+	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.tileMapTexture);
+	const level = 0;
+	const internalFormat = renderer.gl.RGBA;
+	const width = 64 * metersToPixels;
+	const height = 64 * metersToPixels;
+	const border = 0;
+	const format = renderer.gl.RGBA;
+	const type = renderer.gl.UNSIGNED_BYTE;
+	const pixels = null;
+	renderer.gl.texImage2D(renderer.gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, pixels);
+	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_MIN_FILTER, renderer.gl.NEAREST);
+	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_MAG_FILTER, renderer.gl.NEAREST);
+	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_WRAP_S, renderer.gl.CLAMP_TO_EDGE);
+	renderer.gl.texParameteri(renderer.gl.TEXTURE_2D, renderer.gl.TEXTURE_WRAP_T, renderer.gl.CLAMP_TO_EDGE);
+
+	const tileMapFrameBuffer = renderer.gl.createFramebuffer();
+	renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER, tileMapFrameBuffer);
+	renderer.gl.framebufferTexture2D(renderer.gl.FRAMEBUFFER, renderer.gl.COLOR_ATTACHMENT0, 
+		renderer.gl.TEXTURE_2D, renderer.tileMapTexture, level);
+
+	renderer.gl.viewport(0, 0, width, height);
+
+	renderer.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	renderer.gl.clearDepth(1.0);
+	renderer.gl.enable(renderer.gl.DEPTH_TEST);
+	renderer.gl.depthFunc(renderer.gl.LEQUAL);
+	renderer.gl.clear(renderer.gl.COLOR_BUFFER_BIT | renderer.gl.DEPTH_BUFFER_BIT);
+
+	const projectionMatrix = mat4.create();
+	{
+		const left = -0.5 * width * pixelsToMeters;
+		const right = 0.5 * width * pixelsToMeters;
+		const bottom = -0.5 * height * pixelsToMeters;
+		const top = 0.5 * height * pixelsToMeters;
+		const near = -1.0;
+		const far = 1.0;
+		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
+	}
+	
+	const cameraPosition = renderer.cameraPosition;
+
+	{
+		const target = renderer.gl.ARRAY_BUFFER;
+		const buffer = renderer.buffers.vertexPositionBuffer;
+		const index = renderer.programInfo.attribLocations.vertexPosition;
+		const size = 2;
+		const type = renderer.gl.FLOAT;
+		const normalized = false;
+		const stride = 0;
+		const offset = 0;
+		renderer.gl.bindBuffer(target, buffer);
+		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		renderer.gl.enableVertexAttribArray(index);
+	}
+
+	{
+		const target = renderer.gl.ARRAY_BUFFER;
+		const buffer = renderer.buffers.textureCooridantesBuffer;
+		const index = renderer.programInfo.attribLocations.textureCoordinate;
+		const size = 2;
+		const type = renderer.gl.FLOAT;
+		const normalized = false;
+		const stride = 0;
+		const offset = 0;
+		renderer.gl.bindBuffer(target, buffer);
+		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		renderer.gl.enableVertexAttribArray(index);
+	}
+
+	renderer.gl.useProgram(renderer.programInfo.shaderProgram);
+
+	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+
+	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
+	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.grassTileTexture);
+
+	renderer.gl.uniform1i(renderer.programInfo.uniformLocations.sampler, 0);
+
+	const mode = renderer.gl.TRIANGLE_STRIP;
+	const first = 0;
+	const count = 4;
+	for (let yTile = -32; yTile < 32; ++yTile) {
+		for (let xTile = -32; xTile < 32; ++xTile) {
+			const modelViewMatrix = mat4.create();
+			mat4.translate(modelViewMatrix, modelViewMatrix, [xTile - cameraPosition.x + 0.5, yTile - cameraPosition.y + 0.5, 0.0]);
+			mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * 16 * pixelsToMeters, 0.5 * 16 * pixelsToMeters, 1.0]);
+			renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+			renderer.gl.drawArrays(mode, first, count);
+		}
+	}
+}
+
 function draw() {
+	renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER, null);
+	renderer.gl.viewport(0, 0, renderer.gl.canvas.width, renderer.gl.canvas.height);
+
+	renderer.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	renderer.gl.clearDepth(1.0);
+	renderer.gl.enable(renderer.gl.DEPTH_TEST);
+	renderer.gl.depthFunc(renderer.gl.LEQUAL);
+	renderer.gl.clear(renderer.gl.COLOR_BUFFER_BIT | renderer.gl.DEPTH_BUFFER_BIT);
+
+	const viewportSize = renderer.size.scale(pixelsToMeters / zoomLevel);
+	const projectionMatrix = mat4.create();
+	{
+		const left = -0.5 * viewportSize.x;
+		const right = 0.5 * viewportSize.x;
+		const bottom = -0.5 * viewportSize.y;
+		const top = 0.5 * viewportSize.y;
+		const near = -1.0;
+		const far = 1.0;
+		mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
+	}
+	
+	const modelViewMatrix = mat4.create();
+	const cameraPosition = renderer.cameraPosition;
+	mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, 0.0]);
+	mat4.scale(modelViewMatrix, modelViewMatrix, [64 * 0.5 * 16 * pixelsToMeters, 64 * 0.5 * 16 * pixelsToMeters, 1.0]);
+
+	{
+		const target = renderer.gl.ARRAY_BUFFER;
+		const buffer = renderer.buffers.vertexPositionBuffer;
+		const index = renderer.programInfo.attribLocations.vertexPosition;
+		const size = 2;
+		const type = renderer.gl.FLOAT;
+		const normalized = false;
+		const stride = 0;
+		const offset = 0;
+		renderer.gl.bindBuffer(target, buffer);
+		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		renderer.gl.enableVertexAttribArray(index);
+	}
+
+	{
+		const target = renderer.gl.ARRAY_BUFFER;
+		const buffer = renderer.buffers.textureCooridantesBuffer;
+		const index = renderer.programInfo.attribLocations.textureCoordinate;
+		const size = 2;
+		const type = renderer.gl.FLOAT;
+		const normalized = false;
+		const stride = 0;
+		const offset = 0;
+		renderer.gl.bindBuffer(target, buffer);
+		renderer.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		renderer.gl.enableVertexAttribArray(index);
+	}
+
+	renderer.gl.useProgram(renderer.programInfo.shaderProgram);
+
+	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+	renderer.gl.uniformMatrix4fv(renderer.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+	renderer.gl.activeTexture(renderer.gl.TEXTURE0);
+	renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, renderer.tileMapTexture);
+
+	renderer.gl.uniform1i(renderer.programInfo.uniformLocations.sampler, 0);
+
+	{
+		const mode = renderer.gl.TRIANGLE_STRIP;
+		const first = 0;
+		const count = 4;
+		renderer.gl.drawArrays(mode, first, count);
+	}
+}
+
+function draw2d() {
 	renderer.clear();
 	renderer.save();
 
@@ -668,17 +838,7 @@ function draw() {
 	const screenOffset = canvasSize.scale(0.5);
 	renderer.translate(cameraPositionDelta.add(screenOffset));
 
-	const grassImage = imageStore.images[grassTile];
-	const grassTileSize = new V3(grassImage.width, grassImage.height).scale(zoomLevel);
-	const grassOffset = grassTileSize.subtract(grassTileSize.multiply(new V3(0.5, 0.5)));
-	for (let yTile = grassTileFrom.y; yTile <= grassTileTo.y; ++yTile) {
-		for (let xTile = grassTileFrom.x; xTile <= grassTileTo.x; ++xTile) {
-			const grassTileDelta = grassOffset.add(new V3(xTile + 0.5, yTile + 0.5).multiply(grassTileSize));
-			renderer.drawImage(grassImage, grassTileDelta, grassTileSize);
-		}
-	}
-
-	// entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
+	entities.sort((a, b) => a.position.y < b.position.y ? 1 : -1);
 
 	entities.forEach((entity) => { 
 		const entityPositionDelta = entity.position.scale(metersToPixels).multiply(new V3(1., -1.)).scale(zoomLevel);
