@@ -15,6 +15,12 @@ export default class Renderer {
 		this.pixelsToMeters = this.tileSizeMeters / this.tileSizePixels;
 		this.zoomLevel = 4.;
 
+		this.joystickBaseIndex = null;
+		this.joystickStickIndex = null;
+		this.joystick = {
+			direction: new V3()
+		};
+
 		this.context2d = document.getElementById('canvas-2d').getContext('2d');
 		this.gl = document.getElementById('canvas-webgl').getContext('webgl');
 
@@ -378,10 +384,10 @@ export default class Renderer {
 			const diameter = 0.4 * canvasSize.y - 16;
 			const joystickSize = new V3(diameter, diameter);
 			const joystickOffset = new V3(-16., joystickSize.y - canvasSize.y + 16.);
-			const baseImage = imageStore.images[joystickBaseIndex];
+			const baseImage = imageStore.images[this.joystickBaseIndex];
 			this.drawImage(baseImage, joystickOffset, joystickSize);
-			const stickImage = imageStore.images[joystickStickIndex];
-			const stickDirectionOffset = joystick.direction.scale(0.5 * diameter);
+			const stickImage = imageStore.images[this.joystickStickIndex];
+			const stickDirectionOffset = this.joystick.direction.scale(0.5 * diameter);
 			stickDirectionOffset.x = -stickDirectionOffset.x;
 			const stickOffset = joystickOffset.add(stickDirectionOffset);
 			this.drawImage(stickImage, stickOffset, joystickSize);

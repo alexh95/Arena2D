@@ -1,6 +1,6 @@
 import Renderer from './Renderer.js';
 import {imageStore} from './ImageStore.js';
-import {V3, displayText} from './Math.js';
+import {V3} from './Math.js';
 import {CollisionModelData, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
 import {Controller} from './Controller.js';
 import {settings} from './Settings.js';
@@ -9,13 +9,6 @@ import {nameVersionDisplay} from './Constants.js';
 const renderer = new Renderer();
 
 const controller = new Controller();
-
-const joystick = {
-	direction: new V3()
-};
-
-let joystickBaseIndex = null;
-let joystickStickIndex = null;
 
 let grassTile = null;
 
@@ -123,8 +116,8 @@ export default function start() {
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
-	joystickBaseIndex = imageStore.loadImage('res/joystick_base.png');
-	joystickStickIndex = imageStore.loadImage('res/joystick_stick.png');
+	renderer.joystickBaseIndex = imageStore.loadImage('res/joystick_base.png');
+	renderer.joystickStickIndex = imageStore.loadImage('res/joystick_stick.png');
 
 	startLoop();
 }
@@ -357,7 +350,7 @@ function update(dt) {
 
 		direction.normalizeEquals();
 	}
-	joystick.direction = direction;
+	renderer.joystick.direction = direction;
 
 	const absDirX = Math.abs(direction.x);
 	const absDirY = Math.abs(direction.y);
