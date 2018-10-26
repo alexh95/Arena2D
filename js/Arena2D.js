@@ -237,9 +237,19 @@ function startLoop() {
 		const box = createBox(new V3(5.5, 0.5));
 		const barrel = createBarrel(new V3(-5.5, 0.5));
 
-		player = playerSpritesheet;
 		box1 = box;
 		barrel1 = barrel;
+		player = playerSpritesheet;
+
+		box1.combatModel = {
+			health: 1.0
+		};
+		barrel1.combatModel = {
+			health: 1.0
+		};
+		player.combatModel = {
+			health: 1.0
+		};
 		
 		entities.push(wallN, wallS, wallE, wallW, wallNWC, wallNEC, wallSWC, wallSEC);
 
@@ -259,12 +269,8 @@ function startLoop() {
 		entities.push(box1);
 		entities.push(barrel1);
 
-		renderer.textures = [];
-		renderer.grassTileTexture = renderer.loadTexture(imageStore.images[grassTile]);
-		entityTypeToImage.forEach((index) => renderer.textures.push(renderer.loadTexture(imageStore.images[index])));
-		renderer.initDraw();
+		renderer.initDraw(grassTile);
 		renderer.buildTileMap();
-		renderer.initScreenDraw();
 
 		window.requestAnimationFrame(loop);
 	} else {
@@ -297,7 +303,6 @@ function loop(msElapsed) {
 	// console.log('update', d2 - d1);
 
 	renderer.draw();
-	renderer.draw2d();
 	// const d3 = Date.now();
 	// console.log('draw', d3 - d2);
 }

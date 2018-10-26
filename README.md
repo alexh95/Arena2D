@@ -12,21 +12,21 @@ It will include an example game for demonstrating the engine's capabilities.
 ## Roadmap
 
 ### Version 0.3 -> 0.4
-
+- [ ] Pathfinding
 
 ### Version 0.2 -> 0.3
-* Connected wall entities mesh (to stop flickering) and better collision handling
-* Entity Health
-* Attack
-* Enemies
+- [ ] Connected wall entities mesh (to stop flickering) and better collision handling
+- [ ] Entity Health
+- [ ] Attack
+- [ ] Enemies
 
 ### Version 0.1 -> 0.2
-* WebGL: draw all texture objects
+- [x] WebGL: draw all texture objects
 
 ### Version 0.0 -> 0.1
-* Physics engine: acceleration and collisions, collision movement based on mass
-* Input handling: mouse handling, options toggling
-* Sprites and spritesheet animations
-* Tiles
-* Debug overlay (HTMLContext2D)
-* Entity model: collidable, spritesheet, repeatable (drawn multiple times)
+- [x] Physics engine: acceleration and collisions, collision movement based on mass
+- [x] Input handling: mouse handling, options toggling
+- [x] Sprites and spritesheet animations
+- [x] Tiles
+- [x] Debug overlay (HTMLContext2D)
+- [x] Entity model: collidable, spritesheet, repeatable (drawn multiple times)

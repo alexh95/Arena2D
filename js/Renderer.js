@@ -81,20 +81,30 @@ export default class Renderer {
 	initWebGL() {
 		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-		const shaderProgram = this.initShaderProgram(vertexShaderCode, fragmentShaderCode);
-		this.programInfo = {
-			shaderProgram,
+		const sceneShaderProgram = this.initShaderProgram(vertexShaderCode, fragmentShaderCode);
+		this.sceneProgramInfo = {
+			shaderProgram: sceneShaderProgram,
 			attribLocations: {
-				vertexPosition: this.gl.getAttribLocation(shaderProgram, 'vertexPosition'),
-				textureCoordinate: this.gl.getAttribLocation(shaderProgram, 'textureCoordinate')
+				vertexPosition: this.gl.getAttribLocation(sceneShaderProgram, 'vertexPosition'),
+				textureCoordinate: this.gl.getAttribLocation(sceneShaderProgram, 'textureCoordinate')
 			},
 			uniformLocations: {
-				projectionMatrix: this.gl.getUniformLocation(shaderProgram, 'projectionMatrix'),
-				modelViewMatrix: this.gl.getUniformLocation(shaderProgram, 'modelViewMatrix'),
-				textureCoordinateMatrix: this.gl.getUniformLocation(shaderProgram, 'textureCoordinateMatrix'),
-				sampler: this.gl.getUniformLocation(shaderProgram, 'sampler'),
+				projectionMatrix: this.gl.getUniformLocation(sceneShaderProgram, 'projectionMatrix'),
+				modelViewMatrix: this.gl.getUniformLocation(sceneShaderProgram, 'modelViewMatrix'),
+				textureCoordinateMatrix: this.gl.getUniformLocation(sceneShaderProgram, 'textureCoordinateMatrix'),
+				sampler: this.gl.getUniformLocation(sceneShaderProgram, 'sampler'),
 			}
 		}
+		// const guiShaderProgram = this.initShaderProgram();
+		// this.guiShaderInfo = {
+		// 	shaderProgram: this.guiShaderProgram,
+		// 	attribLocations: {
+
+		// 	},
+		// 	uniformLocations: {
+
+		// 	}
+		// }
 
 		const vertexPositionBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vertexPositionBuffer);
@@ -171,14 +181,13 @@ export default class Renderer {
 		return texture;
 	}
 
-	createTexture(level, width, height) {
+	createTexture(level, width, height, pixels) {
 		const texture = this.gl.createTexture();
 		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 		const internalFormat = this.gl.RGBA;
 		const border = 0;
 		const format = this.gl.RGBA;
 		const type = this.gl.UNSIGNED_BYTE;
-		const pixels = null;
 		this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, pixels);
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
@@ -191,10 +200,15 @@ export default class Renderer {
 		return (value & (value - 1)) == 0;
 	}
 
-	initDraw() {
-		this.gl.useProgram(this.programInfo.shaderProgram);
-		this.setupAttribute(this.buffers.vertexPositionBuffer, this.programInfo.attribLocations.vertexPosition);
-		this.setupAttribute(this.buffers.textureCooridantesBuffer, this.programInfo.attribLocations.textureCoordinate);
+	initDraw(grassTile) {
+		this.tileGrassTexture = this.loadTexture(imageStore.images[grassTile]);
+		this.entityTextures = [];
+		entityTypeToImage.forEach((index) => this.entityTextures.push(this.loadTexture(imageStore.images[index])));
+		this.healthBarTexture = this.createTexture(0, 1, 1, new Uint8Array([255, 0, 0, 255]));
+
+		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
+		this.setupAttribute(this.buffers.vertexPositionBuffer, this.sceneProgramInfo.attribLocations.vertexPosition);
+		this.setupAttribute(this.buffers.textureCooridantesBuffer, this.sceneProgramInfo.attribLocations.textureCoordinate);
 	}
 
 	setupAttribute(buffer, index) {
@@ -212,7 +226,7 @@ export default class Renderer {
 		const level = 0;
 		const width = 64 * this.metersToPixels;
 		const height = 64 * this.metersToPixels;
-		this.tileMapTexture = this.createTexture(level, width, height);
+		this.tileMapTexture = this.createTexture(level, width, height, null);
 	
 		const tileMapFrameBuffer = this.gl.createFramebuffer();
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, tileMapFrameBuffer);
@@ -236,19 +250,17 @@ export default class Renderer {
 			const far = 0.5 * height * this.pixelsToMeters;
 			mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
 		}
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
 	
 		let textureCoordinateMatrix = mat4.create();
-		
-		const cameraPosition = this.cameraPosition;
-		
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 	
 		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.grassTileTexture);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.tileGrassTexture);
 	
-		this.gl.uniform1i(this.programInfo.uniformLocations.sampler, 0);
-	
+		this.gl.uniform1i(this.sceneProgramInfo.uniformLocations.sampler, 0);
+		
+		const cameraPosition = this.cameraPosition;
 		const mode = this.gl.TRIANGLE_STRIP;
 		const first = 0;
 		const count = 4;
@@ -257,13 +269,19 @@ export default class Renderer {
 				const modelViewMatrix = mat4.create();
 				mat4.translate(modelViewMatrix, modelViewMatrix, [xTile - cameraPosition.x + 0.5, yTile - cameraPosition.y + 0.5, 0.0]);
 				mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * 16 * this.pixelsToMeters, 0.5 * 16 * this.pixelsToMeters, 1.0]);
-				this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 				this.gl.drawArrays(mode, first, count);
 			}
 		}
 	}
 
-	initScreenDraw() {
+	draw() {
+		this.drawScene();
+		this.drawGui();
+		this.draw2d();
+	}
+
+	initSceneDraw() {
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
 		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -271,30 +289,36 @@ export default class Renderer {
 		this.gl.enable(this.gl.DEPTH_TEST);
 		this.gl.depthFunc(this.gl.LEQUAL);
 
-		this.updateProjectionMatrix();
+		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
+		this.setupAttribute(this.buffers.vertexPositionBuffer, this.sceneProgramInfo.attribLocations.vertexPosition);
+		this.setupAttribute(this.buffers.textureCooridantesBuffer, this.sceneProgramInfo.attribLocations.textureCoordinate);
 
-		this.gl.uniform1i(this.programInfo.uniformLocations.sampler, 0);
+		this.updateProjectionMatrix(this.zoomLevel);
+
+		this.gl.uniform1i(this.sceneProgramInfo.uniformLocations.sampler, 0);
 	}
 
-	updateProjectionMatrix() {
+	updateProjectionMatrix(zoomLevel) {
 		const canvasSize = this.size.scale(0.5);
-		const viewportSize = canvasSize.scale(this.pixelsToMeters / this.zoomLevel);
+		const viewportSize = canvasSize.scale(this.pixelsToMeters / zoomLevel);
 		const projectionMatrix = mat4.create();
 		mat4.ortho(projectionMatrix, -viewportSize.x, viewportSize.x, -viewportSize.y, viewportSize.y, -canvasSize.y, canvasSize.y);
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
 	}
 
-	draw() {
+	drawScene() {
+		this.initSceneDraw();
+
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 	
 		let modelViewMatrix = mat4.create();
 		const cameraPosition = this.cameraPosition;
 		mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, -0.5 * this.size.y]);
 		mat4.scale(modelViewMatrix, modelViewMatrix, [64 * 0.5 * 16 * this.pixelsToMeters, 64 * 0.5 * 16 * this.pixelsToMeters, 1.0]);
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 	
 		let textureCoordinateMatrix = mat4.create();
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 	
 		this.gl.activeTexture(this.gl.TEXTURE0);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.tileMapTexture);
@@ -308,7 +332,7 @@ export default class Renderer {
 	
 		entities.forEach((entity) => {
 			this.gl.activeTexture(this.gl.TEXTURE0);
-			const texture = this.textures[entityTypeToImage[entity.type]];
+			const texture = this.entityTextures[entityTypeToImage[entity.type]];
 			this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 	
 			const image = imageStore.images[entityTypeToImage[entity.type]];
@@ -323,13 +347,13 @@ export default class Renderer {
 				modelViewMatrix = mat4.create();
 				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 				mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-				this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 	
 				textureCoordinateMatrix = mat4.create();
 				const textureOffset = entity.spritesheetModel.index.divide(entity.spritesheetModel.size);
 				mat4.translate(textureCoordinateMatrix, textureCoordinateMatrix, [textureOffset.x, textureOffset.y, 0.0]);
 				mat4.scale(textureCoordinateMatrix, textureCoordinateMatrix, [1.0 / entity.spritesheetModel.size.x, 1.0 / entity.spritesheetModel.size.y, 1.0]);
-				this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 		
 				const mode = this.gl.TRIANGLE_STRIP;
 				const first = 0;
@@ -341,7 +365,7 @@ export default class Renderer {
 				const positionOffset = entity.position.subtract(this.cameraPosition);
 				
 				textureCoordinateMatrix = mat4.create();
-				this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 	
 				if (entity.repeatedModel) {
 					for (let repeatedIndex = 0; repeatedIndex < entity.repeatedModel.count; ++repeatedIndex) {
@@ -351,7 +375,7 @@ export default class Renderer {
 						modelViewMatrix = mat4.create();
 						mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 						mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-						this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+						this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 				
 						const mode = this.gl.TRIANGLE_STRIP;
 						const first = 0;
@@ -364,13 +388,51 @@ export default class Renderer {
 					modelViewMatrix = mat4.create();
 					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 					mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
-					this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+					this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 			
 					const mode = this.gl.TRIANGLE_STRIP;
 					const first = 0;
 					const count = 4;
 					this.gl.drawArrays(mode, first, count);
 				}
+			}
+		});
+	}
+
+	initGuiDraw() {
+		this.gl.disable(this.gl.DEPTH_TEST);
+
+		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
+		this.setupAttribute(this.buffers.vertexPositionBuffer, this.sceneProgramInfo.attribLocations.vertexPosition);
+		this.setupAttribute(this.buffers.textureCooridantesBuffer, this.sceneProgramInfo.attribLocations.textureCoordinate);
+
+		this.updateProjectionMatrix(1.0);
+
+		this.gl.uniform1i(this.sceneProgramInfo.uniformLocations.sampler, 0);
+	}
+
+	drawGui() {
+		this.initGuiDraw();
+
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.healthBarTexture);
+	
+		const textureCoordinateMatrix = mat4.create();
+		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
+
+		entities.forEach((entity) => {
+			if (entity.combatModel) {
+				const modelViewMatrix = mat4.create();
+				const offset = entity.position.subtract(this.cameraPosition).scale(this.zoomLevel);
+				// TODO(alex): health level
+				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y - 1.0 * this.zoomLevel, 0.0]);
+				mat4.scale(modelViewMatrix, modelViewMatrix, [this.zoomLevel * 16 * this.pixelsToMeters, this.zoomLevel * 2 * this.pixelsToMeters, 1.0]);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+				const mode = this.gl.TRIANGLE_STRIP;
+				const first = 0;
+				const count = 4;
+				this.gl.drawArrays(mode, first, count);
 			}
 		});
 	}
