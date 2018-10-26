@@ -13,6 +13,7 @@ const controller = new Controller();
 let grassTile = null;
 
 let player = null;
+let monster = null;
 let box1 = null;
 let barrel1 = null;
 
@@ -122,6 +123,7 @@ export default function start() {
 	entityTypeToImage[EntityTypes.PROJECTILE] = imageStore.loadImage('res/projectile.png');
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
+	entityTypeToImage[EntityTypes.SPRITESHEET_MONSTER] = imageStore.loadImage('res/spritesheet_monster.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
 	renderer.joystickBaseIndex = imageStore.loadImage('res/joystick_base.png');
 	renderer.joystickStickIndex = imageStore.loadImage('res/joystick_stick.png');
@@ -243,7 +245,8 @@ function startLoop() {
 		const wallT6 = createBottomRightCornerlWall(new V3(7.5, -5.5));
 		const wallT7 = createTCornerWall(new V3(11.5, -5.5));
 
-		const playerSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(0.5, 0.25), 1.), new SpritesheetModel(new V3(4, 4, 1)));
+		const playerSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_PLAYER, new V3(0.0, 0.0), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(0.5, 0.25), 1.0), new SpritesheetModel(new V3(4, 4, 1)));
+		const monsterSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_MONSTER, new V3(0.0, 5.0), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(0.5, 0.25), 1.0), new SpritesheetModel(new V3(4, 4, 1)));
 
 		const box = createBox(new V3(5.5, 0.5));
 		const barrel = createBarrel(new V3(-5.5, 0.5));
@@ -251,6 +254,7 @@ function startLoop() {
 		box1 = box;
 		barrel1 = barrel;
 		player = playerSpritesheet;
+		monster = monsterSpritesheet;
 
 		box1.combatModel = {
 			health: 0.75
@@ -259,6 +263,9 @@ function startLoop() {
 			health: 0.25
 		};
 		player.combatModel = {
+			health: 1.0
+		};
+		monster.combatModel = {
 			health: 1.0
 		};
 		
@@ -277,6 +284,7 @@ function startLoop() {
 		addEntity(wallT7);
 
 		addEntity(player);
+		addEntity(monster);
 		addEntity(box1);
 		addEntity(barrel1);
 
@@ -368,39 +376,6 @@ function update(dt) {
 	}
 	renderer.joystick.direction = direction;
 
-	const lookDirection = controller.mouse.position.normalize();
-	if (player.spritesheetModel) {
-		const absDirX = Math.abs(lookDirection.x);
-		const absDirY = Math.abs(lookDirection.y);
-
-		if (lookDirection.x > 0 && absDirX > absDirY) {
-			player.spritesheetModel.index.y = 0;
-		} else if (lookDirection.x < 0 && absDirX > absDirY) {
-			player.spritesheetModel.index.y = 2;
-		} else if (lookDirection.y > 0 && absDirY > absDirX) {
-			player.spritesheetModel.index.y = 1;
-		} else if (lookDirection.y < 0 && absDirY > absDirX) {
-			player.spritesheetModel.index.y = 3;
-		}
-
-		if (direction.length()) {
-			player.spritesheetModel.elapsed += dt;
-			if (player.spritesheetModel.elapsed >= player.spritesheetModel.period) {
-				player.spritesheetModel.elapsed -= player.spritesheetModel.period;
-				if(++player.spritesheetModel.index.x >= player.spritesheetModel.size.x) {
-					player.spritesheetModel.index.x = 0;
-				}
-			}
-		} else {
-			player.spritesheetModel.index.x = 0;
-		}
-	}
-
-	// projectiles.forEach((projectileIndex) => {
-	// 	if (!entities[projectileIndex]) {
-
-	// 	}
-	// });
 	entities.forEach((projectile) => {
 		if (projectile && projectile.type === EntityTypes.PROJECTILE) {
 			const elapsedCandidate = Math.min(projectile.projectileModel.elapsed + dt, projectile.projectileModel.duration);
@@ -413,11 +388,16 @@ function update(dt) {
 		}
 	});
 
+	const lookDirection = controller.mouse.position.normalize();
+	updateSpreadsheet(dt, player, direction, lookDirection);
 	moveEntity(dt, player, controller.mouse.left ? 80./*500.*/ : 80., direction);
 	renderer.cameraPosition = player.position.clone();
 
-	const squareDirection = new V3(); //player.position.add(player.velocity.scale(dt)).subtract(box1.position.add(box1.velocity.scale(dt))).normalize();
-	moveEntity(dt, box1, 25., squareDirection);
+	const monsterDirection = player.position.add(player.velocity.scale(dt)).subtract(monster.position.add(monster.velocity.scale(dt))).normalize();
+	updateSpreadsheet(dt, monster, monsterDirection);
+	moveEntity(dt, monster, 15.0, monsterDirection);
+
+	moveEntity(dt, box1, 25., new V3());
 
 	moveEntity(dt, barrel1, 0., new V3());
 
@@ -432,7 +412,7 @@ function update(dt) {
 				duration: 5.0,
 				elapsed: 0.0,
 				speed: 100.0,
-				damage: 0.25,
+				damage: 0.05,
 				direction: lookDirection
 			}
 			addEntity(projectile);
@@ -443,6 +423,36 @@ function update(dt) {
 	controller.mouse.leftDelta = false;
 	controller.mouse.middleDelta = false;
 	controller.mouse.rightDelta = false;
+}
+
+function updateSpreadsheet(dt, entity, direction, lookDirection = null) {
+	if (!lookDirection) {
+		lookDirection = direction;
+	}
+	const absDirX = Math.abs(lookDirection.x);
+	const absDirY = Math.abs(lookDirection.y);
+
+	if (lookDirection.x > 0 && absDirX > absDirY) {
+		entity.spritesheetModel.index.y = 0;
+	} else if (lookDirection.x < 0 && absDirX > absDirY) {
+		entity.spritesheetModel.index.y = 2;
+	} else if (lookDirection.y > 0 && absDirY > absDirX) {
+		entity.spritesheetModel.index.y = 1;
+	} else if (lookDirection.y < 0 && absDirY > absDirX) {
+		entity.spritesheetModel.index.y = 3;
+	}
+
+	if (direction.lengthSquare() > 0.0) {
+		entity.spritesheetModel.elapsed += dt;
+		if (entity.spritesheetModel.elapsed >= entity.spritesheetModel.period) {
+			entity.spritesheetModel.elapsed -= entity.spritesheetModel.period;
+			if(++entity.spritesheetModel.index.x >= entity.spritesheetModel.size.x) {
+				entity.spritesheetModel.index.x = 0;
+			}
+		}
+	} else {
+		entity.spritesheetModel.index.x = 0;
+	}		
 }
 
 function addEntity(...entityArray) {
@@ -465,9 +475,11 @@ function removeEntity(entity) {
 }
 
 function damageEntity(entity, damage) {
-	entity.combatModel.health = Math.max(entity.combatModel.health - damage, 0.0);
-	if (entity.combatModel.health <= 0.0) {
-		removeEntity(entity);
+	if (entity.combatModel.health > 0.0) {
+		entity.combatModel.health = Math.max(entity.combatModel.health - damage, 0.0);
+		if (entity.combatModel.health <= 0.0) {
+			removeEntity(entity);
+		}
 	}
 }
 

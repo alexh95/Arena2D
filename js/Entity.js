@@ -88,7 +88,8 @@ const entityTypeNames = [
 	'PROJECTILE',
 	'SPRITE_SHEETS',
 	'TEST_SPRITESHEET',
-	'SPRITESHEET_PLAYER'
+	'SPRITESHEET_PLAYER',
+	'SPRITESHEET_MONSTER'
 	];
 const entityTypes = {};
 entityTypeNames.forEach((entityTypeName, index) => {
