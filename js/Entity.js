@@ -54,6 +54,7 @@ export class SpritesheetModel {
 export class Entity {
 
 	constructor(type, position, center, collisionModel, repeatedModel, spritesheetModel) {
+		this.index = null;
 		this.type = type;
 		this.position = position;
 		this.velocity = new V3();
@@ -70,6 +71,8 @@ export const entityTypeToImage = [];
 
 export const entities = [];
 
+export const removedEntityIndexes = [];
+
 const entityTypeNames = [
 	'SPRITES',
 	'PLAYER',
@@ -82,6 +85,7 @@ const entityTypeNames = [
 	'WALL_T_CORNER',
 	'BOX',
 	'BARREL',
+	'PROJECTILE',
 	'SPRITE_SHEETS',
 	'TEST_SPRITESHEET',
 	'SPRITESHEET_PLAYER'

@@ -23,8 +23,11 @@ export class Controller {
             screenPosition: new V3(),
             position: new V3(),
             left: false,
+            leftDelta: false,
             middle: false,
-            right: false
+            middleDelta: false,
+            right: false,
+            rightDelta: false
         };
     }
 

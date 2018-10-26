@@ -1,7 +1,7 @@
 import Renderer from './Renderer.js';
 import {imageStore} from './ImageStore.js';
 import {V3} from './Math.js';
-import {CollisionModelData, Entity, EntityTypes, entities, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
+import {CollisionModelData, Entity, EntityTypes, entities, removedEntityIndexes, entityTypeToImage, RepeatedModel, SpritesheetModel} from './Entity.js';
 import {Controller} from './Controller.js';
 import {settings} from './Settings.js';
 import {nameVersionDisplay} from './Constants.js';
@@ -42,12 +42,15 @@ export default function start() {
 		// console.log(event);
 		switch (event.which) {
 			case 1: {
+				controller.mouse.leftDelta = true;
 				controller.mouse.left = true;
 			} break;
 			case 2: {
+				controller.mouse.middleDelta = true;
 				controller.mouse.middle = true;
 			} break;
 			case 3: {
+				controller.mouse.rightDelta = true;
 				controller.mouse.right = true;
 			} break;
 		}
@@ -60,12 +63,15 @@ export default function start() {
 		// console.log(event);
 		switch (event.which) {
 			case 1: {
+				controller.mouse.leftDelta = true;
 				controller.mouse.left = false;
 			} break;
 			case 2: {
+				controller.mouse.middleDelta = true;
 				controller.mouse.middle = false;
 			} break;
 			case 3: {
+				controller.mouse.rightDelta = true;
 				controller.mouse.right = false;
 			} break;
 		}
@@ -113,6 +119,7 @@ export default function start() {
 	entityTypeToImage[EntityTypes.WALL_T_CORNER] = imageStore.loadImage('res/wall_t_corner.png');
 	entityTypeToImage[EntityTypes.BOX] = imageStore.loadImage('res/box.png');
 	entityTypeToImage[EntityTypes.BARREL] = imageStore.loadImage('res/barrel.png');
+	entityTypeToImage[EntityTypes.PROJECTILE] = imageStore.loadImage('res/projectile.png');
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
@@ -183,6 +190,10 @@ function createBox(position) {
 	return createSimpleEntity(EntityTypes.BOX, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 2., new V3(1., 0.5)));
 }
 
+function createProjectile(position) {
+	return createSimpleEntity(EntityTypes.PROJECTILE, position, new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(1.0, 1.0), 1.0));
+}
+
 function startLoop() {
 	if (imageStore.isLoadingFinished()) {
 		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(1., 0.5), 1));
@@ -251,23 +262,23 @@ function startLoop() {
 			health: 1.0
 		};
 		
-		entities.push(wallN, wallS, wallE, wallW, wallNWC, wallNEC, wallSWC, wallSEC);
+		addEntity(wallN, wallS, wallE, wallW, wallNWC, wallNEC, wallSWC, wallSEC);
 
-		entities.push(wallLN, wallLW, wallLE1, wallLS1, wallLE2, wallLS2, wallLS3, wallLNWC1, wallLNWC2, wallLNEC, wallLSWC, wallLSEC1, wallLSEC2);
+		addEntity(wallLN, wallLW, wallLE1, wallLS1, wallLE2, wallLS2, wallLS3, wallLNWC1, wallLNWC2, wallLNEC, wallLSWC, wallLSEC1, wallLSEC2);
 
-		entities.push(wallRN, wallRE, wallRW1, wallRS1, wallRW2, wallRS2, wallRS3, wallRNWC, wallRNEC1, wallRNEC2, wallRSWC1, wallRSWC2, wallRSEC);
+		addEntity(wallRN, wallRE, wallRW1, wallRS1, wallRW2, wallRS2, wallRS3, wallRNWC, wallRNEC1, wallRNEC2, wallRSWC1, wallRSWC2, wallRSEC);
 
-		entities.push(wallT1);
-		entities.push(wallT2);
-		entities.push(wallT3);
-		entities.push(wallT4);
-		entities.push(wallT5);
-		entities.push(wallT6);
-		entities.push(wallT7);
+		addEntity(wallT1);
+		addEntity(wallT2);
+		addEntity(wallT3);
+		addEntity(wallT4);
+		addEntity(wallT5);
+		addEntity(wallT6);
+		addEntity(wallT7);
 
-		entities.push(player);
-		entities.push(box1);
-		entities.push(barrel1);
+		addEntity(player);
+		addEntity(box1);
+		addEntity(barrel1);
 
 		renderer.initDraw(grassTile);
 		renderer.buildTileMap();
@@ -357,9 +368,8 @@ function update(dt) {
 	}
 	renderer.joystick.direction = direction;
 
+	const lookDirection = controller.mouse.position.normalize();
 	if (player.spritesheetModel) {
-		const lookDirection = controller.mouse.position.normalize();
-
 		const absDirX = Math.abs(lookDirection.x);
 		const absDirY = Math.abs(lookDirection.y);
 
@@ -386,6 +396,23 @@ function update(dt) {
 		}
 	}
 
+	// projectiles.forEach((projectileIndex) => {
+	// 	if (!entities[projectileIndex]) {
+
+	// 	}
+	// });
+	entities.forEach((projectile) => {
+		if (projectile && projectile.type === EntityTypes.PROJECTILE) {
+			const elapsedCandidate = Math.min(projectile.projectileModel.elapsed + dt, projectile.projectileModel.duration);
+			const edt = elapsedCandidate - projectile.projectileModel.elapsed;
+			projectile.projectileModel.elapsed = elapsedCandidate;
+			moveEntity(edt, projectile, projectile.projectileModel.speed, projectile.projectileModel.direction);
+			if (entities[projectile.index] && projectile.projectileModel.elapsed >= projectile.projectileModel.duration) {
+				removeEntity(projectile);
+			}
+		}
+	});
+
 	moveEntity(dt, player, controller.mouse.left ? 80./*500.*/ : 80., direction);
 	renderer.cameraPosition = player.position.clone();
 
@@ -393,6 +420,58 @@ function update(dt) {
 	moveEntity(dt, box1, 25., squareDirection);
 
 	moveEntity(dt, barrel1, 0., new V3());
+
+	if (controller.mouse.leftDelta) {
+		if (controller.mouse.left) {
+			const projectileImage = imageStore.images[entityTypeToImage[EntityTypes.PROJECTILE]];
+			const projectileSize = new V3(projectileImage.width, projectileImage.height).scale(renderer.pixelsToMeters);
+			const projectilePosition = player.position.add(projectileSize.multiply(lookDirection).scale(1.0001));
+			const projectile = createProjectile(projectilePosition);
+			projectile.velocity = player.velocity.add(lookDirection.scale(15.0));
+			projectile.projectileModel = {
+				duration: 5.0,
+				elapsed: 0.0,
+				speed: 100.0,
+				damage: 0.25,
+				direction: lookDirection
+			}
+			addEntity(projectile);
+			if (lookDirection.length() > 1.0) {
+				console.log(lookDirection.length());
+			}
+		} else {
+		}
+	}
+	
+	controller.mouse.leftDelta = false;
+	controller.mouse.middleDelta = false;
+	controller.mouse.rightDelta = false;
+}
+
+function addEntity(...entityArray) {
+	entityArray.forEach((entity) => {
+		if (removedEntityIndexes.length === 0) {
+			entity.index = entities.length;
+			entities.push(entity);
+		} else {
+			const nextFreeIndex = removedEntityIndexes.pop();
+			entity.index = nextFreeIndex;
+			entities[nextFreeIndex] = entity;
+		}
+	});
+}
+
+function removeEntity(entity) {
+	assert(!entities[entity.index], 'entity already removed');
+	entities[entity.index] = null;
+	removedEntityIndexes.push(entity.index);
+}
+
+function damageEntity(entity, damage) {
+	entity.combatModel.health = Math.max(entity.combatModel.health - damage, 0.0);
+	if (entity.combatModel.health <= 0.0) {
+		removeEntity(entity);
+	}
 }
 
 let insideOld = false;
@@ -410,113 +489,111 @@ function moveEntity(dt, entity, speed, direction) {
 		let tMin = 1.;
 		let wallNormal = new V3();
 
-		entities.forEach((e, index) => {
-			if (e != entity && e.collisionModel && entity.collisionModel) {
-				const relativePosition = entity.position.subtract(e.position);
-				const box = entity.collisionModel.box.add(e.collisionModel.box);
-				const nominalCenter = new V3(0.5, 0.5);
-				const offset = entity.collisionModel.center.subtract(nominalCenter).multiply(entity.collisionModel.box)
-					.add(e.collisionModel.center.subtract(nominalCenter).multiply(e.collisionModel.box));
-				const cornerMin = box.scale(-0.5).add(offset);
-				const cornerMax = box.scale(0.5).add(offset);
-				if (e.repeatedModel) {
-					if (e.repeatedModel.direction.x < 0.) {
-						cornerMin.x -= (e.repeatedModel.count - 1) * e.collisionModel.box.x;
-					} else if (e.repeatedModel.direction.x > 0.) {
-						cornerMax.x += (e.repeatedModel.count - 1) * e.collisionModel.box.x;
-					}
-					if (e.repeatedModel.direction.y < 0.) {
-						cornerMin.y -= (e.repeatedModel.count - 1) * e.collisionModel.box.y;
-					} else if (e.repeatedModel.direction.y > 0.) {
-						cornerMax.y += (e.repeatedModel.count - 1) * e.collisionModel.box.y;
-					}
+		entities.filter((e) => e && e != entity && e.collisionModel && entity.collisionModel).forEach((e, index) => {
+			const relativePosition = entity.position.subtract(e.position);
+			const box = entity.collisionModel.box.add(e.collisionModel.box);
+			const nominalCenter = new V3(0.5, 0.5);
+			const offset = entity.collisionModel.center.subtract(nominalCenter).multiply(entity.collisionModel.box)
+				.add(e.collisionModel.center.subtract(nominalCenter).multiply(e.collisionModel.box));
+			const cornerMin = box.scale(-0.5).add(offset);
+			const cornerMax = box.scale(0.5).add(offset);
+			if (e.repeatedModel) {
+				if (e.repeatedModel.direction.x < 0.) {
+					cornerMin.x -= (e.repeatedModel.count - 1) * e.collisionModel.box.x;
+				} else if (e.repeatedModel.direction.x > 0.) {
+					cornerMax.x += (e.repeatedModel.count - 1) * e.collisionModel.box.x;
 				}
-				const radius = e.collisionModel.radius + entity.collisionModel.radius;
+				if (e.repeatedModel.direction.y < 0.) {
+					cornerMin.y -= (e.repeatedModel.count - 1) * e.collisionModel.box.y;
+				} else if (e.repeatedModel.direction.y > 0.) {
+					cornerMax.y += (e.repeatedModel.count - 1) * e.collisionModel.box.y;
+				}
+			}
+			const radius = e.collisionModel.radius + entity.collisionModel.radius;
 
+			if (cornerMin.x) {
+				const epsilon = radius && 0.001 || 0.;
+				// Left wall
+				const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x - radius + epsilon, cornerMin.y, cornerMax.y, tMin);
+				if (collisionLeft.hit && tMin > collisionLeft.t) {
+					hit = true;
+					tMin = collisionLeft.t;
+					wallNormal = new V3(-1., 0.);
+					// console.log(collisionIndex, 'hit left');
+				}
+				// Right wall
+				// console.log('r', collisionIndex, relativePosition, relativePosition.add(deltaPosition), cornerMax.x + radius, cornerMin.y, cornerMax.y);
+				const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x + radius - epsilon, cornerMin.y, cornerMax.y, tMin);
+				if (collisionRight.hit && tMin > collisionRight.t) {
+					hit = true;
+					tMin = collisionRight.t;
+					wallNormal = new V3(1., 0.);
+					// console.log(collisionIndex, 'hit right');
+				}
+				// Bottom wall
+				const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y - radius + epsilon, cornerMin.x, cornerMax.x, tMin);
+				if (collisionBottom.hit && tMin > collisionBottom.t) {
+					hit = true;
+					tMin = collisionBottom.t;
+					wallNormal = new V3(0., -1.);
+					// console.log(collisionIndex, 'hit bottom');
+				}
+				// Top wall
+				const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y + radius - epsilon, cornerMin.x, cornerMax.x, tMin);
+				if (collisionTop.hit && tMin > collisionTop.t) {
+					hit = true;
+					tMin = collisionTop.t;
+					wallNormal = new V3(0., 1.);
+					// console.log(collisionIndex, 'hit top');
+				}
+			}
+			if (radius > 0) {
 				if (cornerMin.x) {
-					const epsilon = radius && 0.001 || 0.;
-					// Left wall
-					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x - radius + epsilon, cornerMin.y, cornerMax.y, tMin);
-					if (collisionLeft.hit && tMin > collisionLeft.t) {
+					// Top Left Circle
+					const collisionTopLeft = collideCircle(relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), deltaPosition, radius);
+					if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
 						hit = true;
-						tMin = collisionLeft.t;
-						wallNormal = new V3(-1., 0.);
-						// console.log(collisionIndex, 'hit left');
+						tMin = collisionTopLeft.t;
+						wallNormal = collisionTopLeft.wn;
+						// console.log(collisionIndex, 'hit tl');
 					}
-					// Right wall
-					// console.log('r', collisionIndex, relativePosition, relativePosition.add(deltaPosition), cornerMax.x + radius, cornerMin.y, cornerMax.y);
-					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x + radius - epsilon, cornerMin.y, cornerMax.y, tMin);
-					if (collisionRight.hit && tMin > collisionRight.t) {
+					// Top Right Circle
+					// console.log('tr', collisionIndex, relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), relativePosition.subtract(cornerMax).add(deltaPosition), radius);
+					const collisionTopRight = collideCircle(relativePosition.subtract(cornerMax), deltaPosition, radius);
+					if (collisionTopRight.hit && tMin > collisionTopRight.t) {
 						hit = true;
-						tMin = collisionRight.t;
-						wallNormal = new V3(1., 0.);
-						// console.log(collisionIndex, 'hit right');
+						tMin = collisionTopRight.t;
+						wallNormal = collisionTopRight.wn;
+						// console.log(collisionIndex, 'hit tr');
 					}
-					// Bottom wall
-					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y - radius + epsilon, cornerMin.x, cornerMax.x, tMin);
-					if (collisionBottom.hit && tMin > collisionBottom.t) {
+					// Bottom Left Circle
+					const collisionBottomLeft = collideCircle(relativePosition.subtract(cornerMin), deltaPosition, radius);
+					if (collisionBottomLeft.hit && tMin > collisionBottomLeft.t) {
 						hit = true;
-						tMin = collisionBottom.t;
-						wallNormal = new V3(0., -1.);
-						// console.log(collisionIndex, 'hit bottom');
+						tMin = collisionBottomLeft.t;
+						wallNormal = collisionBottomLeft.wn;
+						// console.log(collisionIndex, 'hit bl');
 					}
-					// Top wall
-					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y + radius - epsilon, cornerMin.x, cornerMax.x, tMin);
-					if (collisionTop.hit && tMin > collisionTop.t) {
+					// Bottom Right Circle
+					const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(cornerMax.x, cornerMin.y)), deltaPosition, radius);
+					if (collisionBottomRight.hit && tMin > collisionBottomRight.t) {
 						hit = true;
-						tMin = collisionTop.t;
-						wallNormal = new V3(0., 1.);
-						// console.log(collisionIndex, 'hit top');
+						tMin = collisionBottomRight.t;
+						wallNormal = collisionBottomRight.wn;
+						// console.log(collisionIndex, 'hit br');
+					}
+				} else {
+					const collision = collideCircle(relativePosition, deltaPosition, radius);
+					if (collision.hit && tMin > collision.t) {
+						hit = true;
+						tMin = collision.t;
+						wallNormal = collision.wn;
 					}
 				}
-				if (radius > 0) {
-					if (cornerMin.x) {
-						// Top Left Circle
-						const collisionTopLeft = collideCircle(relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), deltaPosition, radius);
-						if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
-							hit = true;
-							tMin = collisionTopLeft.t;
-							wallNormal = collisionTopLeft.wn;
-							// console.log(collisionIndex, 'hit tl');
-						}
-						// Top Right Circle
-						// console.log('tr', collisionIndex, relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), relativePosition.subtract(cornerMax).add(deltaPosition), radius);
-						const collisionTopRight = collideCircle(relativePosition.subtract(cornerMax), deltaPosition, radius);
-						if (collisionTopRight.hit && tMin > collisionTopRight.t) {
-							hit = true;
-							tMin = collisionTopRight.t;
-							wallNormal = collisionTopRight.wn;
-							// console.log(collisionIndex, 'hit tr');
-						}
-						// Bottom Left Circle
-						const collisionBottomLeft = collideCircle(relativePosition.subtract(cornerMin), deltaPosition, radius);
-						if (collisionBottomLeft.hit && tMin > collisionBottomLeft.t) {
-							hit = true;
-							tMin = collisionBottomLeft.t;
-							wallNormal = collisionBottomLeft.wn;
-							// console.log(collisionIndex, 'hit bl');
-						}
-						// Bottom Right Circle
-						const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(cornerMax.x, cornerMin.y)), deltaPosition, radius);
-						if (collisionBottomRight.hit && tMin > collisionBottomRight.t) {
-							hit = true;
-							tMin = collisionBottomRight.t;
-							wallNormal = collisionBottomRight.wn;
-							// console.log(collisionIndex, 'hit br');
-						}
-					} else {
-						const collision = collideCircle(relativePosition, deltaPosition, radius);
-						if (collision.hit && tMin > collision.t) {
-							hit = true;
-							tMin = collision.t;
-							wallNormal = collision.wn;
-						}
-					}
-				}
+			}
 
-				if (hit && !hitEntity) {
-					hitEntity = e;
-				}
+			if (hit && !hitEntity) {
+				hitEntity = e;
 			}
 		});
 
@@ -534,6 +611,19 @@ function moveEntity(dt, entity, speed, direction) {
 				}
 				entity.velocity.subtractEquals(velocityReduction);
 				deltaPosition.subtractEquals(wallNormal.scale(deltaPosition.inner(wallNormal)));
+
+				if (entity.type === EntityTypes.PROJECTILE && hitEntity.type !== EntityTypes.PROJECTILE) {
+					if (hitEntity.combatModel) {
+						damageEntity(hitEntity, entity.projectileModel.damage);
+					}
+					removeEntity(entity);
+				}
+				if (entity.type !== EntityTypes.PROJECTILE && hitEntity.type === EntityTypes.PROJECTILE) {
+					if (entity.combatModel) {
+						damageEntity(entity, hitEntity.projectileModel.damage);
+					}
+					removeEntity(hitEntity);
+				}
 			} else {
 				break;
 			}
@@ -653,4 +743,10 @@ function intersects(e1, np, e2) {
 		
 	}
 	return false;
+}
+
+function assert(condition, message) {
+	if (!condition) {
+		console.log(message);
+	}
 }
