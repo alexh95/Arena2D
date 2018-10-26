@@ -16,7 +16,8 @@ It will include an example game for demonstrating the engine's capabilities.
 
 ### Version 0.2 -> 0.3
 - [ ] Connected wall entities mesh (to stop flickering) and better collision handling
-- [ ] Entity Health
+- [ ] Enhanced collision model
+- [x] Entity Health
 - [ ] Attack
 - [ ] Enemies
 

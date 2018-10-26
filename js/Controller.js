@@ -6,7 +6,7 @@ const Keys = Object.freeze({
 	G: 71,
 	P: 80,
 	S: 83,
-	W: 87,
+	W: 87
 });
 
 export class Controller {

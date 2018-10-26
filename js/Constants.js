@@ -1,3 +1,3 @@
 const name = 'Arena2D';
-const version = '0.2.3';
+const version = '0.2.4';
 export const nameVersionDisplay = name + ' ' + version;

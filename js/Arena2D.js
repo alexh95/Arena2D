@@ -242,10 +242,10 @@ function startLoop() {
 		player = playerSpritesheet;
 
 		box1.combatModel = {
-			health: 1.0
+			health: 0.75
 		};
 		barrel1.combatModel = {
-			health: 1.0
+			health: 0.25
 		};
 		player.combatModel = {
 			health: 1.0
@@ -357,17 +357,19 @@ function update(dt) {
 	}
 	renderer.joystick.direction = direction;
 
-	const absDirX = Math.abs(direction.x);
-	const absDirY = Math.abs(direction.y);
-
 	if (player.spritesheetModel) {
-		if (direction.x > 0 && absDirX > absDirY) {
+		const lookDirection = controller.mouse.position.normalize();
+
+		const absDirX = Math.abs(lookDirection.x);
+		const absDirY = Math.abs(lookDirection.y);
+
+		if (lookDirection.x > 0 && absDirX > absDirY) {
 			player.spritesheetModel.index.y = 0;
-		} else if (direction.x < 0 && absDirX > absDirY) {
+		} else if (lookDirection.x < 0 && absDirX > absDirY) {
 			player.spritesheetModel.index.y = 2;
-		} else if (direction.y > 0 && absDirY > absDirX) {
+		} else if (lookDirection.y > 0 && absDirY > absDirX) {
 			player.spritesheetModel.index.y = 1;
-		} else if (direction.y < 0 && absDirY > absDirX) {
+		} else if (lookDirection.y < 0 && absDirY > absDirX) {
 			player.spritesheetModel.index.y = 3;
 		}
 

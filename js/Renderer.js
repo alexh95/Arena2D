@@ -204,7 +204,7 @@ export default class Renderer {
 		this.tileGrassTexture = this.loadTexture(imageStore.images[grassTile]);
 		this.entityTextures = [];
 		entityTypeToImage.forEach((index) => this.entityTextures.push(this.loadTexture(imageStore.images[index])));
-		this.healthBarTexture = this.createTexture(0, 1, 1, new Uint8Array([255, 0, 0, 255]));
+		this.healthBarTexture = this.createTexture(0, 2, 1, new Uint8Array([255, 0, 0, 255, 255, 0, 0, 128]));
 
 		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
 		this.setupAttribute(this.buffers.vertexPositionBuffer, this.sceneProgramInfo.attribLocations.vertexPosition);
@@ -287,6 +287,7 @@ export default class Renderer {
 		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		this.gl.clearDepth(1.0);
 		this.gl.enable(this.gl.DEPTH_TEST);
+		this.gl.disable(this.gl.BLEND);
 		this.gl.depthFunc(this.gl.LEQUAL);
 
 		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
@@ -401,6 +402,8 @@ export default class Renderer {
 
 	initGuiDraw() {
 		this.gl.disable(this.gl.DEPTH_TEST);
+		this.gl.enable(this.gl.BLEND);
+		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		this.gl.useProgram(this.sceneProgramInfo.shaderProgram);
 		this.setupAttribute(this.buffers.vertexPositionBuffer, this.sceneProgramInfo.attribLocations.vertexPosition);
@@ -416,18 +419,20 @@ export default class Renderer {
 
 		this.gl.activeTexture(this.gl.TEXTURE0);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.healthBarTexture);
-	
-		const textureCoordinateMatrix = mat4.create();
-		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 
 		entities.forEach((entity) => {
 			if (entity.combatModel) {
 				const modelViewMatrix = mat4.create();
 				const offset = entity.position.subtract(this.cameraPosition).scale(this.zoomLevel);
-				// TODO(alex): health level
 				mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y - 1.0 * this.zoomLevel, 0.0]);
 				mat4.scale(modelViewMatrix, modelViewMatrix, [this.zoomLevel * 16 * this.pixelsToMeters, this.zoomLevel * 2 * this.pixelsToMeters, 1.0]);
 				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+				const textureCoordinateMatrix = mat4.create();
+				const ratio = 0.5 * (1.0 - entity.combatModel.health);
+				mat4.translate(textureCoordinateMatrix, textureCoordinateMatrix, [ratio, 0.0, 0.0, 0.0]);
+				mat4.scale(textureCoordinateMatrix, textureCoordinateMatrix, [0.5, 1.0, 1.0, 1.0]);
+				this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 
 				const mode = this.gl.TRIANGLE_STRIP;
 				const first = 0;
