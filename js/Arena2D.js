@@ -407,7 +407,7 @@ function update(dt) {
 			const edt = elapsedCandidate - projectile.projectileModel.elapsed;
 			projectile.projectileModel.elapsed = elapsedCandidate;
 			moveEntity(edt, projectile, projectile.projectileModel.speed, projectile.projectileModel.direction);
-			if (entities[projectile.index] && projectile.projectileModel.elapsed >= projectile.projectileModel.duration) {
+			if (projectile.projectileModel.elapsed >= projectile.projectileModel.duration && !!entities[projectile.index]) {
 				removeEntity(projectile);
 			}
 		}
@@ -436,9 +436,6 @@ function update(dt) {
 				direction: lookDirection
 			}
 			addEntity(projectile);
-			if (lookDirection.length() > 1.0) {
-				console.log(lookDirection.length());
-			}
 		} else {
 		}
 	}
@@ -462,7 +459,7 @@ function addEntity(...entityArray) {
 }
 
 function removeEntity(entity) {
-	assert(!entities[entity.index], 'entity already removed');
+	assert(entities[entity.index], 'entity already removed');
 	entities[entity.index] = null;
 	removedEntityIndexes.push(entity.index);
 }
@@ -616,13 +613,16 @@ function moveEntity(dt, entity, speed, direction) {
 					if (hitEntity.combatModel) {
 						damageEntity(hitEntity, entity.projectileModel.damage);
 					}
-					removeEntity(entity);
-				}
-				if (entity.type !== EntityTypes.PROJECTILE && hitEntity.type === EntityTypes.PROJECTILE) {
+					if (entities[entity.index]) {
+						removeEntity(entity);
+					}
+				} else if (entity.type !== EntityTypes.PROJECTILE && hitEntity.type === EntityTypes.PROJECTILE) {
 					if (entity.combatModel) {
 						damageEntity(entity, hitEntity.projectileModel.damage);
 					}
-					removeEntity(hitEntity);
+					if (entities[hitEntity.index]) {
+						removeEntity(hitEntity);
+					}
 				}
 			} else {
 				break;
