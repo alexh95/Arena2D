@@ -1,5 +1,5 @@
 import {V3} from './Math.js';
-import {entities, entityTypeToImage} from './Entity.js';
+import {entities, entityTypeToImage, EntityTypes} from './Entity.js';
 import {imageStore} from './ImageStore.js';
 import {settings} from './Settings.js';
 import {nameVersionDisplay} from './Constants.js';
@@ -312,6 +312,9 @@ export default class Renderer {
 
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 	
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.tileMapTexture);
+
 		let modelViewMatrix = mat4.create();
 		const cameraPosition = this.cameraPosition;
 		mat4.translate(modelViewMatrix, modelViewMatrix, [-cameraPosition.x, -cameraPosition.y, -0.5 * this.size.y]);
@@ -320,34 +323,29 @@ export default class Renderer {
 	
 		let textureCoordinateMatrix = mat4.create();
 		this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-	
-		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.tileMapTexture);
-	
-		{
-			const mode = this.gl.TRIANGLE_STRIP;
-			const first = 0;
-			const count = 4;
-			this.gl.drawArrays(mode, first, count);
-		}
+
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 	
 		entities.forEach((entity) => {
 			if (entity) {
 				this.gl.activeTexture(this.gl.TEXTURE0);
 				const texture = this.entityTextures[entityTypeToImage[entity.type]];
 				this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-		
+                
 				const image = imageStore.images[entityTypeToImage[entity.type]];
 				const imageSize = new V3(image.width, image.height);
-				
+				const size = imageSize.scale(this.pixelsToMeters);
 				if (entity.spritesheetModel) {
-					const size = imageSize.scale(this.pixelsToMeters).divide(entity.spritesheetModel.size);
-					const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
-					const positionOffset = entity.position.subtract(this.cameraPosition);
-					const offset = positionOffset.add(centerOffset);
-		
+					size.divideEquals(entity.spritesheetModel.size);
+				}
+				const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
+				const positionOffset = entity.position.subtract(this.cameraPosition);
+				const offset = positionOffset.add(centerOffset);
+
+				if (entity.spritesheetModel) {
 					modelViewMatrix = mat4.create();
 					mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
+					mat4.rotate(modelViewMatrix, modelViewMatrix, entity.rotation, [0.0, 0.0, 1.0]);
 					mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 					this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 		
@@ -356,46 +354,30 @@ export default class Renderer {
 					mat4.translate(textureCoordinateMatrix, textureCoordinateMatrix, [textureOffset.x, textureOffset.y, 0.0]);
 					mat4.scale(textureCoordinateMatrix, textureCoordinateMatrix, [1.0 / entity.spritesheetModel.size.x, 1.0 / entity.spritesheetModel.size.y, 1.0]);
 					this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
-			
-					const mode = this.gl.TRIANGLE_STRIP;
-					const first = 0;
-					const count = 4;
-					this.gl.drawArrays(mode, first, count);
+
+					this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 				} else {
-					const size = imageSize.scale(this.pixelsToMeters);
-					const centerOffset = size.multiply(new V3(0.5, 0.5).subtract(entity.center));
-					const positionOffset = entity.position.subtract(this.cameraPosition);
-					
 					textureCoordinateMatrix = mat4.create();
 					this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.textureCoordinateMatrix, false, textureCoordinateMatrix);
 		
 					if (entity.repeatedModel) {
 						for (let repeatedIndex = 0; repeatedIndex < entity.repeatedModel.count; ++repeatedIndex) {
-							const repeatedOffset = size.multiply(entity.repeatedModel.sizeScale).multiply(entity.repeatedModel.direction).scale(repeatedIndex);
-							const offset = positionOffset.add(centerOffset).add(repeatedOffset);
+							const repeatedOffset = size.multiply(entity.repeatedModel.sizeScale).multiply(entity.repeatedModel.direction).scale(repeatedIndex).add(offset);
 			
 							modelViewMatrix = mat4.create();
-							mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
+							mat4.translate(modelViewMatrix, modelViewMatrix, [repeatedOffset.x, repeatedOffset.y, -entity.position.y]);
 							mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 							this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-					
-							const mode = this.gl.TRIANGLE_STRIP;
-							const first = 0;
-							const count = 4;
-							this.gl.drawArrays(mode, first, count);
+
+							this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 						}
 					} else {
-						const offset = positionOffset.add(centerOffset);
-		
 						modelViewMatrix = mat4.create();
 						mat4.translate(modelViewMatrix, modelViewMatrix, [offset.x, offset.y, -entity.position.y]);
 						mat4.scale(modelViewMatrix, modelViewMatrix, [0.5 * size.x, 0.5 * size.y, 1.0]);
 						this.gl.uniformMatrix4fv(this.sceneProgramInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-				
-						const mode = this.gl.TRIANGLE_STRIP;
-						const first = 0;
-						const count = 4;
-						this.gl.drawArrays(mode, first, count);
+
+						this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 					}
 				}
 			}

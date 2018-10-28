@@ -18,9 +18,11 @@ It will include an example game for demonstrating the engine's capabilities.
 - [ ] Connected wall entities mesh (to stop flickering) and better collision handling
 - [ ] Enhanced collision model
 - [x] Entity Health
-- [ ] Melee Attack
+- [x] Melee Attack
 - [x] Projectile Attack
 - [x] Enemies
+- [x] Enemy follows player
+- [ ] Enemy attacks player
 
 ### Version 0.1 -> 0.2
 - [x] WebGL: draw all texture objects

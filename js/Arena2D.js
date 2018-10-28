@@ -124,6 +124,7 @@ export default function start() {
 	entityTypeToImage[EntityTypes.TEST_SPRITESHEET] = imageStore.loadImage('res/spritesheet_template.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_PLAYER] = imageStore.loadImage('res/spritesheet_player.png');
 	entityTypeToImage[EntityTypes.SPRITESHEET_MONSTER] = imageStore.loadImage('res/spritesheet_monster.png');
+	entityTypeToImage[EntityTypes.SPRITESHEET_MELEE_ATTACK] = imageStore.loadImage('res/spritesheet_melee_attack.png');
 	grassTile = imageStore.loadImage('res/grass_tile.png');
 	renderer.joystickBaseIndex = imageStore.loadImage('res/joystick_base.png');
 	renderer.joystickStickIndex = imageStore.loadImage('res/joystick_stick.png');
@@ -133,13 +134,17 @@ export default function start() {
 
 function createEntity(type, position, center, collisionModelData, repeatedModel, spritesheetModel) {
 	const image = imageStore.images[entityTypeToImage[type]];
-	const imageSize = new V3(image.width, image.height);
+	const size = new V3(image.width, image.height);
 	if (spritesheetModel) {
-		imageSize.divideEquals(spritesheetModel.size);
+		size.divideEquals(spritesheetModel.size);
 	}
-	imageSize.scaleEquals(renderer.pixelsToMeters);
-	const collisionModel = collisionModelData.buildCollisionModel(imageSize);
-	return new Entity(type, position, center, collisionModel, repeatedModel, spritesheetModel);
+	size.scaleEquals(renderer.pixelsToMeters);
+	const entity = new Entity(type, position, center, size);
+	const collisionModel = collisionModelData && collisionModelData.buildCollisionModel(size);
+	entity.collisionModel = collisionModel;
+	entity.repeatedModel = repeatedModel;
+	entity.spritesheetModel = spritesheetModel;
+	return entity;
 }
 
 function createSimpleEntity(type, position, center, collisionModelData) {
@@ -156,49 +161,54 @@ function createRepeatedEntity(type, position, center, collisionModelData, repeat
 
 function createHorizontalWall(position, direction = null, count = null) {
 	const repeatedModel = (count) ? new RepeatedModel(direction, count, new V3(1., 0.5)) : null;
-	return createRepeatedEntity(EntityTypes.WALL_HORIZONTAL, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 0.25)), repeatedModel);
+	return createRepeatedEntity(EntityTypes.WALL_HORIZONTAL, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(1.0, 0.25), 0.0, 0.0), repeatedModel);
 }
 
 function createVerticalWall(position, direction = null, count = null) {
 	const repeatedModel = (count) ? new RepeatedModel(direction, count, new V3(1., 0.5)) : null;
-	return createRepeatedEntity(EntityTypes.WALL_VERTICAL, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(0.5, 0.5)), repeatedModel);
+	return createRepeatedEntity(EntityTypes.WALL_VERTICAL, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(0.5, 0.5), 0.0, 0.0), repeatedModel);
 }
 
 function createTopLeftCornerlWall(position) {
-	return createSimpleEntity(EntityTypes.WALL_TOP_LEFT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(new V3(2. / 3., 1. / 3.), 0., new V3(0.75, 0.375)));
+	return createSimpleEntity(EntityTypes.WALL_TOP_LEFT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(0.25, -0.25), new V3(0.75, 0.375), 0.0, 0.0));
 }
 
 function createTopRightCornerlWall(position) {
-	return createSimpleEntity(EntityTypes.WALL_TOP_RIGHT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(new V3(1. / 3., 1. / 3.), 0., new V3(0.75, 0.375)));
+	return createSimpleEntity(EntityTypes.WALL_TOP_RIGHT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(-0.25, -0.25), new V3(0.75, 0.375), 0.0, 0.0));
 }
 
 function createBottomLeftCornerlWall(position) {
-	return createSimpleEntity(EntityTypes.WALL_BOTTOM_LEFT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(new V3(2. / 3., 2. / 3.), 0., new V3(0.75, 0.375)));
+	return createSimpleEntity(EntityTypes.WALL_BOTTOM_LEFT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(0.25, 0.25), new V3(0.75, 0.375), 0.0, 0.0));
 }
 
 function createBottomRightCornerlWall(position) {
-	return createSimpleEntity(EntityTypes.WALL_BOTTOM_RIGHT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(new V3(1. / 3., 2. / 3.), 0., new V3(0.75, 0.375)));
+	return createSimpleEntity(EntityTypes.WALL_BOTTOM_RIGHT_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(-0.25, 0.25), new V3(0.75, 0.375), 0.0, 0.0));
 }
 
 function createTCornerWall(position) {
-	return createSimpleEntity(EntityTypes.WALL_T_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 0., new V3(1., 0.5)));
+	return createSimpleEntity(EntityTypes.WALL_T_CORNER, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(1.0, 0.5), 0.0, 0.0));
 }
 
 function createBarrel(position) {
-	return createSimpleEntity(EntityTypes.BARREL, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 2., new V3(14. / 16., 14. / 32.), 1));
+	return createSimpleEntity(EntityTypes.BARREL, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(14. / 16., 14. / 32.), 1.0, 2.0));
 }
 
 function createBox(position) {
-	return createSimpleEntity(EntityTypes.BOX, position, new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 2., new V3(1., 0.5)));
+	return createSimpleEntity(EntityTypes.BOX, position, new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(1.0, 0.25), 0.0, 2.0));
 }
 
 function createProjectile(position) {
-	return createSimpleEntity(EntityTypes.PROJECTILE, position, new V3(0.5, 0.5), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(1.0, 1.0), 1.0));
+	return createSimpleEntity(EntityTypes.PROJECTILE, position, new V3(0.5, 0.5), new CollisionModelData(true, new V3(), new V3(1.0, 1.0), 1.0, 1.0));
+}
+
+function createAttack() {
+	const attack = createSpreadsheetEntity(EntityTypes.SPRITESHEET_MELEE_ATTACK, new V3(), new V3(0.5, 0.5), new CollisionModelData(false, new V3(), new V3(1.0, 1.0), 1.0, 1.0), new SpritesheetModel(new V3(4, 1, 1), 0.25 * 0.25))
+	return attack;
 }
 
 function startLoop() {
 	if (imageStore.isLoadingFinished()) {
-		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1., new V3(1., 0.5), 1));
+		const playerCharacter = createSimpleEntity(EntityTypes.PLAYER, new V3(0., 0.), new V3(0.5, 0.25), new CollisionModelData(true, new V3(), new V3(1., 0.5), 1.0, 1.0));
 
 		const wallN = createHorizontalWall(new V3(-30.5, 31.5), new V3(1., 0.), 62);
 		const wallS = createHorizontalWall(new V3(-30.5, -31.5), new V3(1., 0.), 62);
@@ -245,8 +255,8 @@ function startLoop() {
 		const wallT6 = createBottomRightCornerlWall(new V3(7.5, -5.5));
 		const wallT7 = createTCornerWall(new V3(11.5, -5.5));
 
-		const playerSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_PLAYER, new V3(0.0, 0.0), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(0.5, 0.25), 1.0), new SpritesheetModel(new V3(4, 4, 1)));
-		const monsterSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_MONSTER, new V3(0.0, 5.0), new V3(0.5, 0.25), new CollisionModelData(new V3(0.5, 0.5), 1.0, new V3(0.5, 0.25), 1.0), new SpritesheetModel(new V3(4, 4, 1)));
+		const playerSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_PLAYER, new V3(0.5, 0.5), new V3(0.5, 0.125), new CollisionModelData(true, new V3(), new V3(0.5, 0.25), 1.0, 1.0), new SpritesheetModel(new V3(4, 4, 1), 0.25));
+		const monsterSpritesheet = createSpreadsheetEntity(EntityTypes.SPRITESHEET_MONSTER, new V3(0.0, 5.0), new V3(0.5, 0.125), new CollisionModelData(true, new V3(), new V3(0.5, 0.25), 1.0, 1.0), new SpritesheetModel(new V3(4, 4, 1), 0.25));
 
 		const box = createBox(new V3(5.5, 0.5));
 		const barrel = createBarrel(new V3(-5.5, 0.5));
@@ -263,10 +273,15 @@ function startLoop() {
 			health: 0.25
 		};
 		player.combatModel = {
-			health: 1.0
+			health: 1.0,
+			attacking: false,
+			elapsed: 0.0,
+			duration: 0.0,
+			attacked: []
 		};
 		monster.combatModel = {
-			health: 1.0
+			health: 1.0,
+			attacked: []
 		};
 		
 		addEntity(wallN, wallS, wallE, wallW, wallNWC, wallNEC, wallSWC, wallSEC);
@@ -287,6 +302,7 @@ function startLoop() {
 		addEntity(monster);
 		addEntity(box1);
 		addEntity(barrel1);
+
 
 		renderer.initDraw(grassTile);
 		renderer.buildTileMap();
@@ -376,33 +392,86 @@ function update(dt) {
 	}
 	renderer.joystick.direction = direction;
 
-	entities.forEach((projectile) => {
-		if (projectile && projectile.type === EntityTypes.PROJECTILE) {
-			const elapsedCandidate = Math.min(projectile.projectileModel.elapsed + dt, projectile.projectileModel.duration);
-			const edt = elapsedCandidate - projectile.projectileModel.elapsed;
-			projectile.projectileModel.elapsed = elapsedCandidate;
-			moveEntity(edt, projectile, projectile.projectileModel.speed, projectile.projectileModel.direction);
-			if (projectile.projectileModel.elapsed >= projectile.projectileModel.duration && !!entities[projectile.index]) {
-				removeEntity(projectile);
+	entities.forEach((entity) => {
+		if (entity && entity.type === EntityTypes.PROJECTILE) {
+			const elapsedCandidate = Math.min(entity.projectileModel.elapsed + dt, entity.projectileModel.duration);
+			const edt = elapsedCandidate - entity.projectileModel.elapsed;
+			entity.projectileModel.elapsed = elapsedCandidate;
+			moveEntity(edt, entity, entity.projectileModel.speed, entity.projectileModel.direction);
+			if (entity.projectileModel.elapsed >= entity.projectileModel.duration && !!entities[entity.index]) {
+				removeEntity(entity);
+			}
+		}
+	});
+	entities.forEach((entity) => {
+		if (entity && entity.type === EntityTypes.SPRITESHEET_MELEE_ATTACK) {
+			entity.spritesheetModel.elapsed += dt;
+			if (entity.spritesheetModel.elapsed >= entity.spritesheetModel.period) {
+				entity.spritesheetModel.elapsed -= entity.spritesheetModel.period;
+				if(++entity.spritesheetModel.index.x >= entity.spritesheetModel.size.x) {
+					entity.spritesheetModel.index.x = 0;
+					removeEntity(entity);
+					player.combatModel.attacking = false;
+				}
+				if (entity.spritesheetModel.index.x === Math.floor(0.5 * entity.spritesheetModel.size.x)) {
+					const playerAttack = entities[player.attack];
+					entities.filter((entity) => entity != null).forEach((entity) => {
+						if (entity != player && entity.combatModel && intersects(playerAttack, playerAttack.position, entity)) {
+							damageEntity(entity, 0.1);
+						}
+					});
+				}
 			}
 		}
 	});
 
 	const lookDirection = controller.mouse.position.normalize();
+
+	if (player.combatModel.attacking) {
+		const playerAttack = entities[player.attack];
+		const attackImage = imageStore.images[entityTypeToImage[EntityTypes.SPRITESHEET_MELEE_ATTACK]];
+		const attackSize = new V3(attackImage.width, attackImage.height).scale(renderer.pixelsToMeters).divide(playerAttack.spritesheetModel.size);
+		const attackPosition = player.position.add(attackSize.scale(0.5).multiply(lookDirection));
+		playerAttack.position = attackPosition;
+		playerAttack.rotation = Math.sign(lookDirection.y) * Math.acos(lookDirection.inner(new V3(1.0, 0.0)));
+	}
+
 	updateSpreadsheet(dt, player, direction, lookDirection);
-	moveEntity(dt, player, controller.mouse.left ? 80./*500.*/ : 80., direction);
+	const playerSpeed = player.combatModel.attacking ? 0.0 : 80.0;
+	moveEntity(dt, player, playerSpeed, direction);
 	renderer.cameraPosition = player.position.clone();
 
 	const monsterDirection = player.position.add(player.velocity.scale(dt)).subtract(monster.position.add(monster.velocity.scale(dt))).normalize();
 	updateSpreadsheet(dt, monster, monsterDirection);
-	moveEntity(dt, monster, 15.0, monsterDirection);
 
-	moveEntity(dt, box1, 25., new V3());
+	if (monster.index) {
+		moveEntity(dt, monster, 15.0, monsterDirection);
+	}
 
-	moveEntity(dt, barrel1, 0., new V3());
+	if (box1.index) {
+		moveEntity(dt, box1, 0.0, new V3());
+	}
+
+	if (barrel1.index) {
+		moveEntity(dt, barrel1, 0.0, new V3());
+	}
 
 	if (controller.mouse.leftDelta) {
-		if (controller.mouse.left) {
+		if (controller.mouse.left && !player.combatModel.attacking) {
+			player.combatModel.attacking = true;
+			player.combatModel.attacked = [];
+			const attackImage = imageStore.images[entityTypeToImage[EntityTypes.SPRITESHEET_MELEE_ATTACK]];
+			const attack = createAttack();
+			const attackSize = new V3(attackImage.width, attackImage.height).scale(renderer.pixelsToMeters).divide(attack.spritesheetModel.size);
+			const attackPosition = player.position.add(attackSize.scale(0.5).multiply(lookDirection));
+			attack.position = attackPosition;
+			attack.rotation = 0.0;
+			addEntity(attack);
+			player.attack = attack.index;
+		}
+	}
+	if (controller.mouse.middleDelta) {
+		if (controller.mouse.middle) {
 			const projectileImage = imageStore.images[entityTypeToImage[EntityTypes.PROJECTILE]];
 			const projectileSize = new V3(projectileImage.width, projectileImage.height).scale(renderer.pixelsToMeters);
 			const projectilePosition = player.position.add(projectileSize.multiply(lookDirection).scale(1.0001));
@@ -416,7 +485,6 @@ function update(dt) {
 				direction: lookDirection
 			}
 			addEntity(projectile);
-		} else {
 		}
 	}
 	
@@ -472,169 +540,210 @@ function removeEntity(entity) {
 	assert(entities[entity.index], 'entity already removed');
 	entities[entity.index] = null;
 	removedEntityIndexes.push(entity.index);
+	entity.index = null;
 }
 
 function damageEntity(entity, damage) {
 	if (entity.combatModel.health > 0.0) {
 		entity.combatModel.health = Math.max(entity.combatModel.health - damage, 0.0);
-		if (entity.combatModel.health <= 0.0) {
+		if (entity.combatModel.health <= 0.0001) {
 			removeEntity(entity);
 		}
 	}
 }
 
 let insideOld = false;
-
 function moveEntity(dt, entity, speed, direction) {
 	let insideNew = false;
 
-	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(8.));
+	const acceleration = direction.scale(speed).subtract(entity.velocity.scale(8.0));
 	let deltaPosition = entity.velocity.scale(dt).add(acceleration.scale(0.5 * dt * dt));
 	entity.velocity = entity.velocity.add(acceleration.scale(dt));
 
 	for (let collisionIndex = 0; collisionIndex < 4; ++collisionIndex) {
 		let hit = false;
 		let hitEntity = null;
-		let tMin = 1.;
+		let tMin = 1.0;
 		let wallNormal = new V3();
 
-		entities.filter((e) => e && e != entity && e.collisionModel && entity.collisionModel).forEach((e, index) => {
-			const relativePosition = entity.position.subtract(e.position);
-			const box = entity.collisionModel.box.add(e.collisionModel.box);
-			const nominalCenter = new V3(0.5, 0.5);
-			const offset = entity.collisionModel.center.subtract(nominalCenter).multiply(entity.collisionModel.box)
-				.add(e.collisionModel.center.subtract(nominalCenter).multiply(e.collisionModel.box));
-			const cornerMin = box.scale(-0.5).add(offset);
-			const cornerMax = box.scale(0.5).add(offset);
-			if (e.repeatedModel) {
-				if (e.repeatedModel.direction.x < 0.) {
-					cornerMin.x -= (e.repeatedModel.count - 1) * e.collisionModel.box.x;
-				} else if (e.repeatedModel.direction.x > 0.) {
-					cornerMax.x += (e.repeatedModel.count - 1) * e.collisionModel.box.x;
-				}
-				if (e.repeatedModel.direction.y < 0.) {
-					cornerMin.y -= (e.repeatedModel.count - 1) * e.collisionModel.box.y;
-				} else if (e.repeatedModel.direction.y > 0.) {
-					cornerMax.y += (e.repeatedModel.count - 1) * e.collisionModel.box.y;
-				}
-			}
-			const radius = e.collisionModel.radius + entity.collisionModel.radius;
+		if (entity.collisionModel && entity.collisionModel.collidesWhenMoving) {
+			entities.filter((e) => e && e != entity && 
+								e.collisionModel && e.collisionModel.collidesWhenMoving
+			).forEach((e, index) => {
+				const relativePosition = entity.position.subtract(e.position);
+				const cornerMin = entity.collisionModel.cornerMin.add(e.collisionModel.cornerMin);
+				const cornerMax = entity.collisionModel.cornerMax.add(e.collisionModel.cornerMax);
+				const innerCornerMin = entity.collisionModel.innerCornerMin.add(e.collisionModel.innerCornerMin);
+				const innerCornerMax = entity.collisionModel.innerCornerMax.add(e.collisionModel.innerCornerMax);
+				const innerDiffX = Math.abs(innerCornerMin.x - innerCornerMax.x);
+				const innerDiffY = Math.abs(innerCornerMin.y - innerCornerMax.y);
 
-			if (cornerMin.x) {
+				if (e.repeatedModel) {
+					const e2DiffX = Math.abs(e.collisionModel.cornerMin.x - e.collisionModel.cornerMax.x);
+					const e2DiffY = Math.abs(e.collisionModel.cornerMin.y - e.collisionModel.cornerMax.y);
+					const e2InnerDiffX = Math.abs(e.collisionModel.innerCornerMin.x - e.collisionModel.innerCornerMax.x);
+					const e2InnerDiffY = Math.abs(e.collisionModel.innerCornerMin.y - e.collisionModel.innerCornerMax.y);
+					if (e.repeatedModel.direction.x < 0.0) {
+						cornerMin.x -= (e.repeatedModel.count - 1) * e2DiffX;
+						innerCornerMin.x -= (e.repeatedModel.count - 1) * e2InnerDiffX;
+					} else if (e.repeatedModel.direction.x > 0.0) {
+						cornerMax.x += (e.repeatedModel.count - 1) * e2DiffX;
+						innerCornerMax.x += (e.repeatedModel.count - 1) * e2InnerDiffX;
+					}
+					if (e.repeatedModel.direction.y < 0.0) {
+						cornerMin.y -= (e.repeatedModel.count - 1) * e2DiffY;
+						innerCornerMin.y -= (e.repeatedModel.count - 1) * e2InnerDiffY;
+					} else if (e.repeatedModel.direction.y > 0.0) {
+						cornerMax.y += (e.repeatedModel.count - 1) * e2DiffY;
+						innerCornerMax.y += (e.repeatedModel.count - 1) * e2InnerDiffY;
+					}
+				}
+				
+				const radius = e.collisionModel.radius + entity.collisionModel.radius;
 				const epsilon = radius && 0.001 || 0.;
-				// Left wall
-				const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x - radius + epsilon, cornerMin.y, cornerMax.y, tMin);
-				if (collisionLeft.hit && tMin > collisionLeft.t) {
-					hit = true;
-					tMin = collisionLeft.t;
-					wallNormal = new V3(-1., 0.);
-					// console.log(collisionIndex, 'hit left');
-				}
-				// Right wall
-				// console.log('r', collisionIndex, relativePosition, relativePosition.add(deltaPosition), cornerMax.x + radius, cornerMin.y, cornerMax.y);
-				const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x + radius - epsilon, cornerMin.y, cornerMax.y, tMin);
-				if (collisionRight.hit && tMin > collisionRight.t) {
-					hit = true;
-					tMin = collisionRight.t;
-					wallNormal = new V3(1., 0.);
-					// console.log(collisionIndex, 'hit right');
-				}
-				// Bottom wall
-				const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y - radius + epsilon, cornerMin.x, cornerMax.x, tMin);
-				if (collisionBottom.hit && tMin > collisionBottom.t) {
-					hit = true;
-					tMin = collisionBottom.t;
-					wallNormal = new V3(0., -1.);
-					// console.log(collisionIndex, 'hit bottom');
-				}
-				// Top wall
-				const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y + radius - epsilon, cornerMin.x, cornerMax.x, tMin);
-				if (collisionTop.hit && tMin > collisionTop.t) {
-					hit = true;
-					tMin = collisionTop.t;
-					wallNormal = new V3(0., 1.);
-					// console.log(collisionIndex, 'hit top');
-				}
-			}
-			if (radius > 0) {
-				if (cornerMin.x) {
-					// Top Left Circle
-					const collisionTopLeft = collideCircle(relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), deltaPosition, radius);
-					if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
+				if (innerDiffX) {
+					// Left wall
+					const collisionLeft = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMin.x + epsilon, innerCornerMin.y, innerCornerMax.y, tMin);
+					if (collisionLeft.hit && tMin > collisionLeft.t) {
 						hit = true;
-						tMin = collisionTopLeft.t;
-						wallNormal = collisionTopLeft.wn;
-						// console.log(collisionIndex, 'hit tl');
+						tMin = collisionLeft.t;
+						wallNormal = new V3(-1., 0.);
+						// console.log(collisionIndex, 'hit ls');
 					}
-					// Top Right Circle
-					// console.log('tr', collisionIndex, relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), relativePosition.subtract(cornerMax).add(deltaPosition), radius);
-					const collisionTopRight = collideCircle(relativePosition.subtract(cornerMax), deltaPosition, radius);
-					if (collisionTopRight.hit && tMin > collisionTopRight.t) {
+					// Right wall
+					// console.log('r', collisionIndex, relativePosition, relativePosition.add(deltaPosition), cornerMax.x + radius, innerCornerMin.y, innerCornerMin.y);
+					const collisionRight = collideWall(relativePosition.x, relativePosition.y, deltaPosition.x, deltaPosition.y, cornerMax.x - epsilon, innerCornerMin.y, innerCornerMax.y, tMin);
+					if (collisionRight.hit && tMin > collisionRight.t) {
 						hit = true;
-						tMin = collisionTopRight.t;
-						wallNormal = collisionTopRight.wn;
-						// console.log(collisionIndex, 'hit tr');
-					}
-					// Bottom Left Circle
-					const collisionBottomLeft = collideCircle(relativePosition.subtract(cornerMin), deltaPosition, radius);
-					if (collisionBottomLeft.hit && tMin > collisionBottomLeft.t) {
-						hit = true;
-						tMin = collisionBottomLeft.t;
-						wallNormal = collisionBottomLeft.wn;
-						// console.log(collisionIndex, 'hit bl');
-					}
-					// Bottom Right Circle
-					const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(cornerMax.x, cornerMin.y)), deltaPosition, radius);
-					if (collisionBottomRight.hit && tMin > collisionBottomRight.t) {
-						hit = true;
-						tMin = collisionBottomRight.t;
-						wallNormal = collisionBottomRight.wn;
-						// console.log(collisionIndex, 'hit br');
-					}
-				} else {
-					const collision = collideCircle(relativePosition, deltaPosition, radius);
-					if (collision.hit && tMin > collision.t) {
-						hit = true;
-						tMin = collision.t;
-						wallNormal = collision.wn;
+						tMin = collisionRight.t;
+						wallNormal = new V3(1., 0.);
+						// console.log(collisionIndex, 'hit rs');
 					}
 				}
-			}
-
-			if (hit && !hitEntity) {
-				hitEntity = e;
-			}
-		});
+				if (innerDiffY) {
+					// Bottom wall
+					const collisionBottom = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMin.y + epsilon, innerCornerMin.x, innerCornerMax.x, tMin);
+					if (collisionBottom.hit && tMin > collisionBottom.t) {
+						hit = true;
+						tMin = collisionBottom.t;
+						wallNormal = new V3(0., -1.);
+						// console.log(collisionIndex, 'hit bs');
+					}
+					// Top wall
+					const collisionTop = collideWall(relativePosition.y, relativePosition.x, deltaPosition.y, deltaPosition.x, cornerMax.y - epsilon, innerCornerMin.x, innerCornerMax.x, tMin);
+					if (collisionTop.hit && tMin > collisionTop.t) {
+						hit = true;
+						tMin = collisionTop.t;
+						wallNormal = new V3(0., 1.);
+						// console.log(collisionIndex, 'hit ts');
+					}
+				}
+				if (radius > 0) {
+					if (innerDiffX && innerDiffY) {
+						// Top Left Circle
+						const collisionTopLeft = collideCircle(relativePosition.subtract(new V3(innerCornerMin.x, innerCornerMax.y)), deltaPosition, radius);
+						if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
+							hit = true;
+							tMin = collisionTopLeft.t;
+							wallNormal = collisionTopLeft.wn;
+							// console.log(collisionIndex, 'hit tlc');
+						}
+						// Top Right Circle
+						// console.log('tr', collisionIndex, relativePosition.subtract(new V3(cornerMin.x, cornerMax.y)), relativePosition.subtract(cornerMax).add(deltaPosition), radius);
+						const collisionTopRight = collideCircle(relativePosition.subtract(innerCornerMax), deltaPosition, radius);
+						if (collisionTopRight.hit && tMin > collisionTopRight.t) {
+							hit = true;
+							tMin = collisionTopRight.t;
+							wallNormal = collisionTopRight.wn;
+							// console.log(collisionIndex, 'hit trc');
+						}
+						// Bottom Left Circle
+						const collisionBottomLeft = collideCircle(relativePosition.subtract(innerCornerMin), deltaPosition, radius);
+						if (collisionBottomLeft.hit && tMin > collisionBottomLeft.t) {
+							hit = true;
+							tMin = collisionBottomLeft.t;
+							wallNormal = collisionBottomLeft.wn;
+							// console.log(collisionIndex, 'hit blc');
+						}
+						// Bottom Right Circle
+						const collisionBottomRight = collideCircle(relativePosition.subtract(new V3(innerCornerMax.x, innerCornerMin.y)), deltaPosition, radius);
+						if (collisionBottomRight.hit && tMin > collisionBottomRight.t) {
+							hit = true;
+							tMin = collisionBottomRight.t;
+							wallNormal = collisionBottomRight.wn;
+							// console.log(collisionIndex, 'hit brc');
+						}
+					} else if (innerDiffX ^ innerDiffY) {
+						// Left/Bottom Circle
+						const collisionTopLeft = collideCircle(relativePosition.subtract(innerCornerMin), deltaPosition, radius);
+						if (collisionTopLeft.hit && tMin > collisionTopLeft.t) {
+							hit = true;
+							tMin = collisionTopLeft.t;
+							wallNormal = collisionTopLeft.wn;
+							// console.log(collisionIndex, 'hit l/bc');
+						}
+						// Right/Top Circle
+						const collisionTopRight = collideCircle(relativePosition.subtract(innerCornerMax), deltaPosition, radius);
+						if (collisionTopRight.hit && tMin > collisionTopRight.t) {
+							hit = true;
+							tMin = collisionTopRight.t;
+							wallNormal = collisionTopRight.wn;
+							// console.log(collisionIndex, 'hit r/tc');
+						}
+					} else {
+						// Center Circle
+						const collision = collideCircle(relativePosition, deltaPosition, radius);
+						if (collision.hit && tMin > collision.t) {
+							hit = true;
+							tMin = collision.t;
+							wallNormal = collision.wn;
+							// console.log(collisionIndex, 'hit cc');
+						}
+					}
+				}
+				if (hit && !hitEntity) {
+					hitEntity = e;
+				}
+			});
+		}
 
 		// console.log(wallNormal, tMin);
 		const newPosition = entity.position.add(deltaPosition.scale(tMin));
-		const moveValid = entities.map((e) => entity == e || !intersects(entity, newPosition, e)).reduce((a, b) => a && b);
+		const moveValid = entities.filter((e) => e && e.type !== EntityTypes.SPRITESHEET_MELEE_ATTACK).map((e) => (entity == e) || !intersects(entity, newPosition, e, true)).reduce((a, b) => a && b);
 
 		if (moveValid) {
 			entity.position = newPosition;
 			if (hit) {
-				const velocityReduction = wallNormal.scale(entity.velocity.inner(wallNormal));
-				if (entity.collisionModel.mass && hitEntity.collisionModel.mass) {
-					const massRatio = entity.collisionModel.mass / hitEntity.collisionModel.mass;
-					hitEntity.velocity.addEquals(velocityReduction.scale(massRatio));
-				}
-				entity.velocity.subtractEquals(velocityReduction);
-				deltaPosition.subtractEquals(wallNormal.scale(deltaPosition.inner(wallNormal)));
-
-				if (entity.type === EntityTypes.PROJECTILE && hitEntity.type !== EntityTypes.PROJECTILE) {
-					if (hitEntity.combatModel) {
-						damageEntity(hitEntity, entity.projectileModel.damage);
-					}
-					if (entities[entity.index]) {
+				if (entity.type === EntityTypes.PROJECTILE) {
+					if (hitEntity.type !== EntityTypes.PROJECTILE) {
+						if (hitEntity.combatModel) {
+							damageEntity(hitEntity, entity.projectileModel.damage);
+						}
+						if (!entities[entity.index]) {
+							console.log('nope');
+						}
 						removeEntity(entity);
+						break;
 					}
-				} else if (entity.type !== EntityTypes.PROJECTILE && hitEntity.type === EntityTypes.PROJECTILE) {
-					if (entity.combatModel) {
-						damageEntity(entity, hitEntity.projectileModel.damage);
-					}
-					if (entities[hitEntity.index]) {
+				} else if (hitEntity.type === EntityTypes.PROJECTILE) {
+					if (entity.type !== EntityTypes.PROJECTILE) {
+						if (entity.combatModel) {
+							damageEntity(entity, hitEntity.projectileModel.damage);
+						}
+						if (!entities[hitEntity.index]) {
+							console.log('nope');
+						}
 						removeEntity(hitEntity);
+						break;
 					}
+				} else {
+					const velocityReduction = wallNormal.scale(entity.velocity.inner(wallNormal));
+					if (entity.collisionModel.mass && hitEntity.collisionModel.mass) {
+						const massRatio = entity.collisionModel.mass / hitEntity.collisionModel.mass;
+						hitEntity.velocity.addEquals(velocityReduction.scale(massRatio));
+					}
+					entity.velocity.subtractEquals(velocityReduction);
+					deltaPosition.subtractEquals(wallNormal.scale(deltaPosition.inner(wallNormal)));
 				}
 			} else {
 				break;
@@ -647,15 +756,15 @@ function moveEntity(dt, entity, speed, direction) {
 
 function collideWall(x, y, dx, dy, wx, wy1, wy2) {
 	let hit = false;
-	let t = 1.;
+	let t = 1.0;
 	const epsilon = 0.0001;
 
-	if (dx !== 0.) {
+	if (dx !== 0.0) {
 		const nt = (wx - x) / dx;
 		const ny = y + t * dy;
-		if ((nt > 0.) && (nt < t) && (((y >= wy1) && (y <= wy2)) || ((ny >= wy1) && (ny <= wy2)))) {
+		if ((nt > 0.0) && (nt < t) && (((y >= wy1) && (y <= wy2)) || ((ny >= wy1) && (ny <= wy2)))) {
 			hit = true;
-			t = Math.max(0., nt - epsilon);
+			t = Math.max(0.0, nt - epsilon);
 		}
 	}
 
@@ -664,7 +773,7 @@ function collideWall(x, y, dx, dy, wx, wy1, wy2) {
 
 function collideCircle(rp, dp, r) {
 	let hit = false;
-	let t = 1.;
+	let t = 1.0;
 	let wn = new V3();
 	const epsilon = 0.0001;
 
@@ -682,72 +791,93 @@ function collideCircle(rp, dp, r) {
 		if (t > tFinal) {
 			hit = true;
 			t = Math.max(0., tFinal - epsilon);
-			// wn = rp.add(dp.scale(t)).normalize();
-			wn = rp.normalize();
+			wn = rp.add(dp.scale(t)).normalize();
+			// wn = rp.normalize();
 		}
 	}
 
 	return {hit, t, wn};
 }
 
-function intersects(e1, np, e2) {
-	if (e1 != e2 && e1.collides && e2.collides) {
+function intersects(e1, np, e2, log = false) {
+	// const log_ = e1.type === EntityTypes.SPRITESHEET_MELEE_ATTACK && e2.type === EntityTypes.SPRITESHEET_MONSTER;
+	if (e1 != e2 && e1.collisionModel && e2.collisionModel) {
 		const rp = np.subtract(e2.position);
-		const sizeX = e1.collisionModel.box.x + e2.collisionModel.box.x;
-		const sizeY = e1.collisionModel.box.y + e2.collisionModel.box.y;
+		const cornerMin = e1.collisionModel.cornerMin.add(e2.collisionModel.cornerMin);
+		const cornerMax = e1.collisionModel.cornerMax.add(e2.collisionModel.cornerMax);
+		
+		const innerCornerMin = e1.collisionModel.innerCornerMin.add(e2.collisionModel.innerCornerMin);
+		const innerCornerMax = e1.collisionModel.innerCornerMax.add(e2.collisionModel.innerCornerMax);
+		const innerDiffX = Math.abs(innerCornerMin.x - innerCornerMax.x);
+		const innerDiffY = Math.abs(innerCornerMin.y - innerCornerMax.y);
 		const radius = e1.collisionModel.radius + e2.collisionModel.radius;
 		const epsilon = 0.001;
 
-		if (sizeX) {
+		if (e2.repeatedModel) {
+			const e2DiffX = Math.abs(e2.collisionModel.cornerMin.x - e2.collisionModel.cornerMax.x);
+			const e2DiffY = Math.abs(e2.collisionModel.cornerMin.y - e2.collisionModel.cornerMax.y);
+			const e2InnerDiffX = Math.abs(e2.collisionModel.innerCornerMin.x - e2.collisionModel.innerCornerMax.x);
+			const e2InnerDiffY = Math.abs(e2.collisionModel.innerCornerMin.y - e2.collisionModel.innerCornerMax.y);
+			if (e2.repeatedModel.direction.x < 0.0) {
+				cornerMin.x -= (e2.repeatedModel.count - 1) * e2DiffX;
+				innerCornerMin.x -= (e2.repeatedModel.count - 1) * e2InnerDiffX;
+			} else if (e2.repeatedModel.direction.x > 0.0) {
+				cornerMax.x += (e2.repeatedModel.count - 1) * e2DiffX;
+				innerCornerMax.x += (e2.repeatedModel.count - 1) * e2InnerDiffX;
+			}
+			if (e2.repeatedModel.direction.y < 0.0) {
+				cornerMin.y -= (e2.repeatedModel.count - 1) * e2DiffY;
+				innerCornerMin.y -= (e2.repeatedModel.count - 1) * e2InnerDiffY;
+			} else if (e2.repeatedModel.direction.y > 0.0) {
+				cornerMax.y += (e2.repeatedModel.count - 1) * e2DiffY;
+				innerCornerMax.y += (e2.repeatedModel.count - 1) * e2InnerDiffY;
+			}
+		}
+
+		if (innerDiffX || innerDiffY) {
 			if (radius) {
-				const boxMin1 = new V3(sizeX + 2 * (radius - epsilon), sizeY - epsilon).scale(-0.5);
-				const boxMax1 = new V3(sizeX + 2 * (radius - epsilon), sizeY - epsilon).scale(0.5);
-				if (rp.x >= boxMin1.x && rp.x <= boxMax1.x && rp.y >= boxMin1.y && rp.y <= boxMax1.y) {
-					console.log('i bx', rp, boxMin1, boxMax1);
+				if (rp.x >= cornerMin.x + epsilon && rp.x <= cornerMax.x - epsilon && rp.y >= innerCornerMin.y + epsilon && rp.y <= innerCornerMax.y - epsilon) {
+					log && console.log('i bx', rp, cornerMin, cornerMax, innerCornerMin, innerCornerMax);
 					return true;
 				}
-				const boxMin2 = new V3(sizeX - epsilon, sizeY + 2 * (radius - epsilon)).scale(-0.5);
-				const boxMax2 = new V3(sizeX - epsilon, sizeY + 2 * (radius - epsilon)).scale(0.5);
-				if (rp.x >= boxMin2.x && rp.x <= boxMax2.x && rp.y >= boxMin2.y && rp.y <= boxMax2.y) {
-					console.log('i by', rp, boxMin2, boxMax2);
+				if (rp.x >= innerCornerMin.x + epsilon && rp.x <= innerCornerMax.x - epsilon && rp.y >= cornerMin.y + epsilon && rp.y <= cornerMax.y - epsilon) {
+					log && console.log('i by', rp, cornerMin, cornerMax, innerCornerMin, innerCornerMax);
 					return true;
 				}
 			} else {
-				const boxMin = new V3(sizeX, sizeY).scale(-0.5);
-				const boxMax = new V3(sizeX, sizeY).scale(0.5);
-				if (rp.x >= boxMin.x && rp.x <= boxMax.x && rp.y >= boxMin.y && rp.y <= boxMax.y) {
-					console.log('i b', rp, boxMin, boxMax);
+				if (rp.x >= cornerMin.x && rp.x <= cornerMax.x && rp.y >= cornerMin.y && rp.y <= cornerMax.y) {
+					log && console.log('i b', rp, cornerMin, cornerMax);
 					return true;
 				}
 			}
 		}
 		
 		if (radius) {
-			const radiusSqare = radius * radius;d
-			if (sizeX) {
-				const rpTL = rp.add(new V3(-0.5 * sizeX, 0.5 * sizeY));
-				if (rpTL.lengthSquare() <= radiusSqare) {
-					console.log('i tl', rpTL, radiusSqare);
+			const radiusSqare = radius * radius;
+			if (innerDiffX || innerDiffY) {
+				const distTL = rp.subtract(new V3(innerCornerMin.x, innerCornerMax.y));
+				if (distTL.lengthSquare() <= radiusSqare) {
+					log && console.log('i tl', distTL, distTL.lengthSquare(), radiusSqare);
 					return true;
 				}
-				const rpTR = rp.add(new V3(0.5 * sizeX, 0.5 * sizeY));
-				if (rpTR.lengthSquare() <= radiusSqare) {
-					console.log('i tr', rpTR, radiusSqare);
+				const distTR = rp.subtract(innerCornerMax);
+				if (distTR.lengthSquare() <= radiusSqare) {
+					log && console.log('i tr', distTR, distTR.lengthSquare(), radiusSqare);
 					return true;
 				}
-				const rpBL = rp.add(new V3(-0.5 * sizeX, -0.5 * sizeY));
-				if (rpBL.lengthSquare() <= radiusSqare) {
-					console.log('i bl', rpBL, radiusSqare);
+				const distBL = rp.subtract(innerCornerMin);
+				if (distBL.lengthSquare() <= radiusSqare) {
+					log && console.log('i bl', distBL, distBL.lengthSquare(), radiusSqare);
 					return true;
 				}
-				const rpBR = rp.add(new V3(0.5 * sizeX, -0.5 * sizeY));
-				if (rpBR.lengthSquare() <= radiusSqare) {
-					console.log('i br', rpBR, radiusSqare);
+				const distBR = rp.subtract(new V3(innerCornerMax.x, innerCornerMin.y));
+				if (distBR.lengthSquare() <= radiusSqare) {
+					log && console.log('i br', distBR, distBR.lengthSquare(), radiusSqare);
 					return true;
 				}
 			} else {
-				if (rp.lengthSquare() <= radius) {
-					console.log('i c');
+				if (rp.lengthSquare() <= radiusSqare) {
+					log && console.log('i c', rp.lengthSquare(), radiusSqare);
 					return true;
 				}
 			}
